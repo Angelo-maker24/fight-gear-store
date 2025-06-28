@@ -1,10 +1,11 @@
 
 import { useState } from 'react';
-import { ShoppingCart, Search, User, UserCog, LogOut } from 'lucide-react';
+import { ShoppingCart, Search, User, UserCog, LogOut, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
 import { useCategories } from '@/hooks/useCategories';
+import { useNavigate } from 'react-router-dom';
 
 interface NavbarProps {
   onCartOpen: () => void;
@@ -26,6 +27,7 @@ export const Navbar = ({ onCartOpen, onAuthOpen, onCategorySelect, selectedCateg
   const [searchTerm, setSearchTerm] = useState('');
   const { user, isAdmin, signOut } = useAuth();
   const { categories } = useCategories();
+  const navigate = useNavigate();
 
   // Combine default categories with dynamic ones
   const allCategories = [
@@ -53,6 +55,17 @@ export const Navbar = ({ onCartOpen, onAuthOpen, onCategorySelect, selectedCateg
                   Hola, {user.email}
                   {isAdmin && ' (Admin)'}
                 </span>
+                {isAdmin && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => navigate('/admin')}
+                    className="text-white hover:text-gold-400 transition-colors"
+                  >
+                    <Settings className="w-4 h-4 mr-1" />
+                    Panel Admin
+                  </Button>
+                )}
                 <Button 
                   variant="ghost" 
                   size="sm" 
@@ -93,7 +106,10 @@ export const Navbar = ({ onCartOpen, onAuthOpen, onCategorySelect, selectedCateg
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <div className="flex items-center space-x-2">
+          <div 
+            className="flex items-center space-x-2 cursor-pointer"
+            onClick={() => navigate('/')}
+          >
             <div className="bg-gold-500 p-2 rounded-full">
               <span className="text-2xl font-bold text-white">🥊</span>
             </div>
