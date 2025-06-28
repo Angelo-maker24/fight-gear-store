@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { User, UserCog, Eye, EyeOff } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -14,8 +15,10 @@ interface AuthModalProps {
 }
 
 export const AuthModal = ({ isOpen, onClose, type }: AuthModalProps) => {
+  const { signIn, signUp } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -25,11 +28,53 @@ export const AuthModal = ({ isOpen, onClose, type }: AuthModalProps) => {
     phone: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement authentication logic
-    console.log('Auth attempt:', { type, isLogin, formData });
-    onClose();
+    setLoading(true);
+
+    try {
+      if (isLogin) {
+        const { error } = await signIn(formData.email, formData.password);
+        if (!error) {
+          onClose();
+          setFormData({
+            email: '',
+            password: '',
+            confirmPassword: '',
+            firstName: '',
+            lastName: '',
+            phone: ''
+          });
+        }
+      } else {
+        if (formData.password !== formData.confirmPassword) {
+          alert('Las contraseñas no coinciden');
+          return;
+        }
+
+        const { error } = await signUp(formData.email, formData.password, {
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          phone: formData.phone
+        });
+
+        if (!error) {
+          onClose();
+          setFormData({
+            email: '',
+            password: '',
+            confirmPassword: '',
+            firstName: '',
+            lastName: '',
+            phone: ''
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Auth error:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const isAdminMode = type === 'admin';
@@ -121,13 +166,14 @@ export const AuthModal = ({ isOpen, onClose, type }: AuthModalProps) => {
 
                   <Button 
                     type="submit" 
+                    disabled={loading}
                     className={`w-full font-bold ${
                       isAdminMode 
                         ? 'bg-red-600 hover:bg-red-700' 
                         : 'bg-blue-600 hover:bg-blue-700'
                     }`}
                   >
-                    {isAdminMode ? '🔐 Acceder como Admin' : '🚀 Iniciar Sesión'}
+                    {loading ? 'Cargando...' : (isAdminMode ? '🔐 Acceder como Admin' : '🚀 Iniciar Sesión')}
                   </Button>
                 </form>
               </TabsContent>
@@ -214,8 +260,12 @@ export const AuthModal = ({ isOpen, onClose, type }: AuthModalProps) => {
                       />
                     </div>
 
-                    <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 font-bold">
-                      🎯 Crear Cuenta
+                    <Button 
+                      type="submit" 
+                      disabled={loading}
+                      className="w-full bg-blue-600 hover:bg-blue-700 font-bold"
+                    >
+                      {loading ? 'Cargando...' : '🎯 Crear Cuenta'}
                     </Button>
                   </form>
                 </TabsContent>

@@ -3,19 +3,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ShoppingCart } from 'lucide-react';
-
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  originalPrice?: number;
-  image: string;
-  category: string;
-  description: string;
-  isOnSale?: boolean;
-  rating: number;
-  reviews: number;
-}
+import { Product } from '@/hooks/useProducts';
 
 interface ProductCardProps {
   product: Product;
@@ -24,9 +12,25 @@ interface ProductCardProps {
 export const ProductCard = ({ product }: ProductCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
 
-  const discountPercentage = product.originalPrice 
-    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+  const discountPercentage = product.original_price 
+    ? Math.round(((product.original_price - product.price) / product.original_price) * 100)
     : 0;
+
+  const categoryIcons: Record<string, string> = {
+    'guantes': '🥊',
+    'protection': '🛡️',
+    'clothing': '👕',
+    'equipment': '🏋️',
+    'accessories': '⚡'
+  };
+
+  const categoryNames: Record<string, string> = {
+    'guantes': 'Guantes',
+    'protection': 'Protecciones',
+    'clothing': 'Ropa',
+    'equipment': 'Equipos',
+    'accessories': 'Accesorios'
+  };
 
   return (
     <div 
@@ -37,14 +41,14 @@ export const ProductCard = ({ product }: ProductCardProps) => {
       {/* Image Container */}
       <div className="relative overflow-hidden">
         <img 
-          src={product.image} 
+          src={product.image_url || '/placeholder.svg'} 
           alt={product.name}
           className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300"
         />
         
         {/* Badges */}
         <div className="absolute top-3 left-3 flex flex-col space-y-2">
-          {product.isOnSale && (
+          {product.is_on_sale && (
             <Badge className="bg-red-600 text-white">
               -{discountPercentage}% OFF
             </Badge>
@@ -71,11 +75,8 @@ export const ProductCard = ({ product }: ProductCardProps) => {
       <div className="p-4">
         {/* Category */}
         <div className="text-sm text-gray-500 mb-2 capitalize">
-          {product.category === 'gloves' && '🥊 Guantes'}
-          {product.category === 'protection' && '🛡️ Protecciones'}
-          {product.category === 'clothing' && '👕 Ropa'}
-          {product.category === 'equipment' && '🏋️ Equipos'}
-          {product.category === 'accessories' && '⚡ Accesorios'}
+          {product.category?.icon || categoryIcons[product.category?.name || '']} {' '}
+          {product.category?.name ? categoryNames[product.category.name] || product.category.name : 'Sin categoría'}
         </div>
 
         {/* Title */}
@@ -95,7 +96,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
             {'☆'.repeat(5 - Math.floor(product.rating))}
           </div>
           <span className="text-sm text-gray-500 ml-2">
-            {product.rating} ({product.reviews} reseñas)
+            {product.rating} ({product.reviews_count} reseñas)
           </span>
         </div>
 
@@ -105,9 +106,9 @@ export const ProductCard = ({ product }: ProductCardProps) => {
             <span className="text-2xl font-bold text-red-600">
               ${product.price}
             </span>
-            {product.originalPrice && (
+            {product.original_price && (
               <span className="text-lg text-gray-400 line-through">
-                ${product.originalPrice}
+                ${product.original_price}
               </span>
             )}
           </div>

@@ -1,8 +1,10 @@
 
 import { useState } from 'react';
-import { ShoppingCart, Search, User, UserCog } from 'lucide-react';
+import { ShoppingCart, Search, User, UserCog, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useAuth } from '@/hooks/useAuth';
+import { useCategories } from '@/hooks/useCategories';
 
 interface NavbarProps {
   onCartOpen: () => void;
@@ -11,17 +13,32 @@ interface NavbarProps {
   selectedCategory: string;
 }
 
-const categories = [
-  { id: 'all', name: 'Todos', icon: '🥊' },
-  { id: 'gloves', name: 'Guantes', icon: '🥊' },
-  { id: 'protection', name: 'Protecciones', icon: '🛡️' },
-  { id: 'clothing', name: 'Ropa', icon: '👕' },
-  { id: 'equipment', name: 'Equipos', icon: '🏋️' },
-  { id: 'accessories', name: 'Accesorios', icon: '⚡' }
+const defaultCategories = [
+  { id: 'all', name: 'all', description: 'Todos los productos', icon: '🥊' },
+  { id: 'gloves', name: 'guantes', description: 'Guantes de boxeo', icon: '🥊' },
+  { id: 'protection', name: 'protection', description: 'Protecciones', icon: '🛡️' },
+  { id: 'clothing', name: 'clothing', description: 'Ropa deportiva', icon: '👕' },
+  { id: 'equipment', name: 'equipment', description: 'Equipos', icon: '🏋️' },
+  { id: 'accessories', name: 'accessories', description: 'Accesorios', icon: '⚡' }
 ];
 
 export const Navbar = ({ onCartOpen, onAuthOpen, onCategorySelect, selectedCategory }: NavbarProps) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const { user, isAdmin, signOut } = useAuth();
+  const { categories } = useCategories();
+
+  // Combine default categories with dynamic ones
+  const allCategories = [
+    { id: 'all', name: 'all', description: 'Todos', icon: '🥊' },
+    ...categories.map(cat => ({
+      id: cat.id,
+      name: cat.name,
+      description: cat.name.charAt(0).toUpperCase() + cat.name.slice(1),
+      icon: cat.icon
+    }))
+  ];
+
+  const displayCategories = allCategories.length > 1 ? allCategories : defaultCategories;
 
   return (
     <nav className="bg-gradient-to-r from-red-900 via-red-700 to-red-900 shadow-lg sticky top-0 z-50">
@@ -30,24 +47,44 @@ export const Navbar = ({ onCartOpen, onAuthOpen, onCategorySelect, selectedCateg
         <div className="container mx-auto px-4 flex justify-between items-center text-sm">
           <span>🚚 Envíos a toda Venezuela | 📞 WhatsApp: +58 412-345-6789</span>
           <div className="flex space-x-4">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => onAuthOpen('user')}
-              className="text-white hover:text-gold-400 transition-colors"
-            >
-              <User className="w-4 h-4 mr-1" />
-              Usuario
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => onAuthOpen('admin')}
-              className="text-white hover:text-gold-400 transition-colors"
-            >
-              <UserCog className="w-4 h-4 mr-1" />
-              Admin
-            </Button>
+            {user ? (
+              <div className="flex items-center space-x-4">
+                <span className="text-gold-400">
+                  Hola, {user.email}
+                  {isAdmin && ' (Admin)'}
+                </span>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={signOut}
+                  className="text-white hover:text-gold-400 transition-colors"
+                >
+                  <LogOut className="w-4 h-4 mr-1" />
+                  Salir
+                </Button>
+              </div>
+            ) : (
+              <>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => onAuthOpen('user')}
+                  className="text-white hover:text-gold-400 transition-colors"
+                >
+                  <User className="w-4 h-4 mr-1" />
+                  Usuario
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => onAuthOpen('admin')}
+                  className="text-white hover:text-gold-400 transition-colors"
+                >
+                  <UserCog className="w-4 h-4 mr-1" />
+                  Admin
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -94,19 +131,19 @@ export const Navbar = ({ onCartOpen, onAuthOpen, onCategorySelect, selectedCateg
 
         {/* Categories */}
         <div className="mt-4 flex space-x-2 overflow-x-auto pb-2">
-          {categories.map((category) => (
+          {displayCategories.map((category) => (
             <Button
               key={category.id}
-              variant={selectedCategory === category.id ? "secondary" : "ghost"}
-              onClick={() => onCategorySelect(category.id)}
+              variant={selectedCategory === category.name ? "secondary" : "ghost"}
+              onClick={() => onCategorySelect(category.name)}
               className={`whitespace-nowrap ${
-                selectedCategory === category.id 
+                selectedCategory === category.name 
                   ? 'bg-gold-500 text-white hover:bg-gold-600' 
                   : 'text-white hover:bg-white/20'
               }`}
             >
               <span className="mr-2">{category.icon}</span>
-              {category.name}
+              {category.description}
             </Button>
           ))}
         </div>
