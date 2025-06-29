@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -72,12 +71,12 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
     receiptFile: null
   });
 
-  const exchangeRate = 50; // Este valor debería venir de la configuración
+  const exchangeRate = 50;
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      if (file.size > 5 * 1024 * 1024) {
         toast.error('El archivo no puede ser mayor a 5MB');
         return;
       }
@@ -98,6 +97,7 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
 
       if (uploadError) {
         console.error('Error uploading file:', uploadError);
+        toast.error('Error al subir el comprobante');
         return null;
       }
 
@@ -108,6 +108,7 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
       return publicUrl;
     } catch (error) {
       console.error('Error in uploadReceipt:', error);
+      toast.error('Error al procesar el comprobante');
       return null;
     }
   };
@@ -120,6 +121,10 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
 
     setLoading(true);
     try {
+      console.log('Creating order with user:', user.id);
+      console.log('Payment method:', paymentInfo.methodId);
+      console.log('Total items:', items.length);
+
       // Crear la orden
       const { data: order, error: orderError } = await supabase
         .from('orders')
@@ -148,8 +153,11 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
         .single();
 
       if (orderError) {
-        throw orderError;
+        console.error('Order creation error:', orderError);
+        throw new Error(`Error al crear orden: ${orderError.message}`);
       }
+
+      console.log('Order created:', order);
 
       // Crear los items de la orden
       const orderItems = items.map(item => ({
@@ -165,13 +173,20 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
         .insert(orderItems);
 
       if (itemsError) {
-        throw itemsError;
+        console.error('Order items error:', itemsError);
+        throw new Error(`Error al crear items: ${itemsError.message}`);
       }
+
+      console.log('Order items created');
 
       // Subir comprobante si existe
       let receiptUrl = null;
       if (paymentInfo.receiptFile) {
+        console.log('Uploading receipt...');
         receiptUrl = await uploadReceipt(paymentInfo.receiptFile, order.id);
+        if (!receiptUrl) {
+          throw new Error('Error al subir el comprobante');
+        }
       }
 
       // Crear el recibo de pago
@@ -192,8 +207,11 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
         ]);
 
       if (receiptError) {
-        throw receiptError;
+        console.error('Receipt error:', receiptError);
+        throw new Error(`Error al crear recibo: ${receiptError.message}`);
       }
+
+      console.log('Payment receipt created');
 
       // Limpiar carrito y cerrar checkout
       clearCart();
@@ -201,9 +219,9 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
       onClose();
       setCurrentStep(1);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating order:', error);
-      toast.error('Error al procesar el pedido. Inténtalo de nuevo.');
+      toast.error(error.message || 'Error al procesar el pedido. Inténtalo de nuevo.');
     } finally {
       setLoading(false);
     }

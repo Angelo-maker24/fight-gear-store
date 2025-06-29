@@ -112,7 +112,7 @@ export const AuthModal = ({ isOpen, onClose, type }: AuthModalProps) => {
             {isAdminMode && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
                 <p className="text-sm text-red-700 font-medium">
-                  🔒 Credenciales Admin pre-cargadas - Solo inicia sesión o regístrate
+                  🔒 Credenciales Admin: admin@boxeomax.com / BoxeoMax2024!
                 </p>
               </div>
             )}
@@ -235,7 +235,7 @@ export const AuthModal = ({ isOpen, onClose, type }: AuthModalProps) => {
                       value={formData.email}
                       onChange={(e) => setFormData({...formData, email: e.target.value})}
                       required
-                      disabled={isAdminMode}
+                      readOnly={isAdminMode}
                     />
                   </div>
 
@@ -249,7 +249,7 @@ export const AuthModal = ({ isOpen, onClose, type }: AuthModalProps) => {
                         value={formData.password}
                         onChange={(e) => setFormData({...formData, password: e.target.value})}
                         required
-                        disabled={isAdminMode}
+                        readOnly={isAdminMode}
                       />
                       <button
                         type="button"
@@ -261,19 +261,18 @@ export const AuthModal = ({ isOpen, onClose, type }: AuthModalProps) => {
                     </div>
                   </div>
 
-                  {!isAdminMode && (
-                    <div>
-                      <Label htmlFor="confirmPassword">Confirmar Contraseña</Label>
-                      <Input
-                        id="confirmPassword"
-                        type="password"
-                        placeholder="••••••••"
-                        value={formData.confirmPassword}
-                        onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
-                        required
-                      />
-                    </div>
-                  )}
+                  <div>
+                    <Label htmlFor="confirmPassword">Confirmar Contraseña</Label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      placeholder="••••••••"
+                      value={formData.confirmPassword}
+                      onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+                      required
+                      readOnly={isAdminMode}
+                    />
+                  </div>
 
                   <Button 
                     type="submit" 
