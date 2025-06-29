@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ShoppingCart } from 'lucide-react';
 import { Product } from '@/hooks/useProducts';
+import { useCart } from '@/hooks/useCart';
 
 interface ProductCardProps {
   product: Product;
@@ -11,6 +12,7 @@ interface ProductCardProps {
 
 export const ProductCard = ({ product }: ProductCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
+  const { addItem } = useCart();
 
   const discountPercentage = product.original_price 
     ? Math.round(((product.original_price - product.price) / product.original_price) * 100)
@@ -30,6 +32,10 @@ export const ProductCard = ({ product }: ProductCardProps) => {
     'clothing': 'Ropa',
     'equipment': 'Equipos',
     'accessories': 'Accesorios'
+  };
+
+  const handleAddToCart = () => {
+    addItem(product);
   };
 
   return (
@@ -64,7 +70,10 @@ export const ProductCard = ({ product }: ProductCardProps) => {
         <div className={`absolute inset-0 bg-black/50 flex items-center justify-center transition-opacity duration-300 ${
           isHovered ? 'opacity-100' : 'opacity-0'
         }`}>
-          <Button className="bg-gold-500 hover:bg-gold-600 text-black font-bold">
+          <Button 
+            className="bg-gold-500 hover:bg-gold-600 text-black font-bold"
+            onClick={handleAddToCart}
+          >
             <ShoppingCart className="w-4 h-4 mr-2" />
             Agregar al Carrito
           </Button>
@@ -117,11 +126,13 @@ export const ProductCard = ({ product }: ProductCardProps) => {
             size="sm" 
             variant="outline"
             className="border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
+            onClick={handleAddToCart}
           >
-            Ver Detalles
+            <ShoppingCart className="w-4 h-4" />
           </Button>
         </div>
       </div>
     </div>
   );
 };
+

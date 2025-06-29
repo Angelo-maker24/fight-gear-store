@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
 import { useCategories } from '@/hooks/useCategories';
+import { useCart } from '@/hooks/useCart';
 import { useNavigate } from 'react-router-dom';
 
 interface NavbarProps {
@@ -27,6 +28,7 @@ export const Navbar = ({ onCartOpen, onAuthOpen, onCategorySelect, selectedCateg
   const [searchTerm, setSearchTerm] = useState('');
   const { user, isAdmin, signOut } = useAuth();
   const { categories } = useCategories();
+  const { totalItems } = useCart();
   const navigate = useNavigate();
 
   // Combine default categories with dynamic ones
@@ -139,9 +141,11 @@ export const Navbar = ({ onCartOpen, onAuthOpen, onCategorySelect, selectedCateg
           >
             <ShoppingCart className="w-5 h-5 mr-2" />
             Carrito
-            <span className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center">
-              0
-            </span>
+            {totalItems > 0 && (
+              <span className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center">
+                {totalItems}
+              </span>
+            )}
           </Button>
         </div>
 
@@ -167,3 +171,4 @@ export const Navbar = ({ onCartOpen, onAuthOpen, onCategorySelect, selectedCateg
     </nav>
   );
 };
+

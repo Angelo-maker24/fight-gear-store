@@ -8,24 +8,45 @@ interface ProductGridProps {
   selectedCategory: string;
 }
 
+type SortOption = 'none' | 'on_sale' | 'best_rated' | 'price_low_high';
+
 export const ProductGrid = ({ selectedCategory }: ProductGridProps) => {
   const { products, loading } = useProducts();
   const { categories } = useCategories();
   const [filteredProducts, setFilteredProducts] = useState(products);
+  const [sortOption, setSortOption] = useState<SortOption>('none');
 
   useEffect(() => {
+    let filtered = products;
+
+    // Filter by category
     if (selectedCategory === 'all') {
-      setFilteredProducts(products);
+      filtered = products;
     } else {
-      // Find category by name
       const category = categories.find(cat => cat.name === selectedCategory);
       if (category) {
-        setFilteredProducts(products.filter(product => product.category_id === category.id));
-      } else {
-        setFilteredProducts(products);
+        filtered = products.filter(product => product.category_id === category.id);
       }
     }
-  }, [selectedCategory, products, categories]);
+
+    // Apply sorting
+    switch (sortOption) {
+      case 'on_sale':
+        filtered = filtered.filter(product => product.is_on_sale);
+        break;
+      case 'best_rated':
+        filtered = [...filtered].sort((a, b) => b.rating - a.rating);
+        break;
+      case 'price_low_high':
+        filtered = [...filtered].sort((a, b) => a.price - b.price);
+        break;
+      default:
+        // No additional sorting
+        break;
+    }
+
+    setFilteredProducts(filtered);
+  }, [selectedCategory, products, categories, sortOption]);
 
   if (loading) {
     return (
@@ -58,13 +79,34 @@ export const ProductGrid = ({ selectedCategory }: ProductGridProps) => {
         <div className="flex justify-center mb-8">
           <div className="bg-white rounded-lg p-2 shadow-lg">
             <div className="flex space-x-2">
-              <button className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold">
+              <button 
+                className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                  sortOption === 'on_sale' 
+                    ? 'bg-red-600 text-white' 
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+                onClick={() => setSortOption(sortOption === 'on_sale' ? 'none' : 'on_sale')}
+              >
                 🔥 En Oferta
               </button>
-              <button className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+              <button 
+                className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                  sortOption === 'best_rated' 
+                    ? 'bg-red-600 text-white' 
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+                onClick={() => setSortOption(sortOption === 'best_rated' ? 'none' : 'best_rated')}
+              >
                 ⭐ Mejor Valorados
               </button>
-              <button className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+              <button 
+                className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                  sortOption === 'price_low_high' 
+                    ? 'bg-red-600 text-white' 
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+                onClick={() => setSortOption(sortOption === 'price_low_high' ? 'none' : 'price_low_high')}
+              >
                 💰 Precio: Menor a Mayor
               </button>
             </div>
@@ -83,7 +125,9 @@ export const ProductGrid = ({ selectedCategory }: ProductGridProps) => {
             <div className="text-6xl mb-4">📦</div>
             <h3 className="text-2xl font-bold text-gray-800 mb-2">No hay productos disponibles</h3>
             <p className="text-gray-600">
-              {selectedCategory !== 'all' 
+              {sortOption !== 'none' 
+                ? 'No hay productos que coincidan con este filtro.' 
+                : selectedCategory !== 'all' 
                 ? 'No hay productos en esta categoría por el momento.' 
                 : 'Próximamente agregaremos productos increíbles.'
               }
@@ -103,3 +147,4 @@ export const ProductGrid = ({ selectedCategory }: ProductGridProps) => {
     </section>
   );
 };
+
