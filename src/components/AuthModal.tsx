@@ -20,9 +20,9 @@ export const AuthModal = ({ isOpen, onClose, type }: AuthModalProps) => {
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    confirmPassword: '',
+    email: type === 'admin' ? 'admin@boxeomax.com' : '',
+    password: type === 'admin' ? 'BoxeoMax2024!' : '',
+    confirmPassword: type === 'admin' ? 'BoxeoMax2024!' : '',
     firstName: '',
     lastName: '',
     phone: ''
@@ -37,18 +37,12 @@ export const AuthModal = ({ isOpen, onClose, type }: AuthModalProps) => {
         const { error } = await signIn(formData.email, formData.password);
         if (!error) {
           onClose();
-          setFormData({
-            email: '',
-            password: '',
-            confirmPassword: '',
-            firstName: '',
-            lastName: '',
-            phone: ''
-          });
+          resetForm();
         }
       } else {
         if (formData.password !== formData.confirmPassword) {
           alert('Las contraseñas no coinciden');
+          setLoading(false);
           return;
         }
 
@@ -60,20 +54,35 @@ export const AuthModal = ({ isOpen, onClose, type }: AuthModalProps) => {
 
         if (!error) {
           onClose();
-          setFormData({
-            email: '',
-            password: '',
-            confirmPassword: '',
-            firstName: '',
-            lastName: '',
-            phone: ''
-          });
+          resetForm();
         }
       }
     } catch (error) {
       console.error('Auth error:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    if (type === 'admin') {
+      setFormData({
+        email: 'admin@boxeomax.com',
+        password: 'BoxeoMax2024!',
+        confirmPassword: 'BoxeoMax2024!',
+        firstName: '',
+        lastName: '',
+        phone: ''
+      });
+    } else {
+      setFormData({
+        email: '',
+        password: '',
+        confirmPassword: '',
+        firstName: '',
+        lastName: '',
+        phone: ''
+      });
     }
   };
 
@@ -103,7 +112,7 @@ export const AuthModal = ({ isOpen, onClose, type }: AuthModalProps) => {
             {isAdminMode && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
                 <p className="text-sm text-red-700 font-medium">
-                  🔒 Acceso restringido solo para administradores autorizados
+                  🔒 Credenciales Admin pre-cargadas - Solo inicia sesión o regístrate
                 </p>
               </div>
             )}
@@ -117,14 +126,13 @@ export const AuthModal = ({ isOpen, onClose, type }: AuthModalProps) => {
                 >
                   Iniciar Sesión
                 </TabsTrigger>
-                {!isAdminMode && (
-                  <TabsTrigger 
-                    value="register" 
-                    onClick={() => setIsLogin(false)}
-                  >
-                    Registrarse
-                  </TabsTrigger>
-                )}
+                <TabsTrigger 
+                  value="register" 
+                  onClick={() => setIsLogin(false)}
+                  className={isAdminMode ? 'data-[state=active]:bg-red-600 data-[state=active]:text-white' : ''}
+                >
+                  Registrarse
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="login" className="space-y-4 mt-6">
@@ -178,9 +186,9 @@ export const AuthModal = ({ isOpen, onClose, type }: AuthModalProps) => {
                 </form>
               </TabsContent>
 
-              {!isAdminMode && (
-                <TabsContent value="register" className="space-y-4 mt-6">
-                  <form onSubmit={handleSubmit} className="space-y-4">
+              <TabsContent value="register" className="space-y-4 mt-6">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  {!isAdminMode && (
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="firstName">Nombre</Label>
@@ -203,7 +211,9 @@ export const AuthModal = ({ isOpen, onClose, type }: AuthModalProps) => {
                         />
                       </div>
                     </div>
+                  )}
 
+                  {!isAdminMode && (
                     <div>
                       <Label htmlFor="phone">Teléfono</Label>
                       <Input
@@ -214,40 +224,44 @@ export const AuthModal = ({ isOpen, onClose, type }: AuthModalProps) => {
                         required
                       />
                     </div>
+                  )}
 
-                    <div>
-                      <Label htmlFor="email">Email</Label>
+                  <div>
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder={isAdminMode ? 'admin@boxeomax.com' : 'tu@email.com'}
+                      value={formData.email}
+                      onChange={(e) => setFormData({...formData, email: e.target.value})}
+                      required
+                      disabled={isAdminMode}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="password">Contraseña</Label>
+                    <div className="relative">
                       <Input
-                        id="email"
-                        type="email"
-                        placeholder="tu@email.com"
-                        value={formData.email}
-                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                        id="password"
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="••••••••"
+                        value={formData.password}
+                        onChange={(e) => setFormData({...formData, password: e.target.value})}
                         required
+                        disabled={isAdminMode}
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
                     </div>
+                  </div>
 
-                    <div>
-                      <Label htmlFor="password">Contraseña</Label>
-                      <div className="relative">
-                        <Input
-                          id="password"
-                          type={showPassword ? 'text' : 'password'}
-                          placeholder="••••••••"
-                          value={formData.password}
-                          onChange={(e) => setFormData({...formData, password: e.target.value})}
-                          required
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
-                        >
-                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
-                      </div>
-                    </div>
-
+                  {!isAdminMode && (
                     <div>
                       <Label htmlFor="confirmPassword">Confirmar Contraseña</Label>
                       <Input
@@ -259,17 +273,21 @@ export const AuthModal = ({ isOpen, onClose, type }: AuthModalProps) => {
                         required
                       />
                     </div>
+                  )}
 
-                    <Button 
-                      type="submit" 
-                      disabled={loading}
-                      className="w-full bg-blue-600 hover:bg-blue-700 font-bold"
-                    >
-                      {loading ? 'Cargando...' : '🎯 Crear Cuenta'}
-                    </Button>
-                  </form>
-                </TabsContent>
-              )}
+                  <Button 
+                    type="submit" 
+                    disabled={loading}
+                    className={`w-full font-bold ${
+                      isAdminMode 
+                        ? 'bg-red-600 hover:bg-red-700' 
+                        : 'bg-blue-600 hover:bg-blue-700'
+                    }`}
+                  >
+                    {loading ? 'Cargando...' : (isAdminMode ? '🔐 Crear Admin' : '🎯 Crear Cuenta')}
+                  </Button>
+                </form>
+              </TabsContent>
             </Tabs>
 
             {!isAdminMode && (
