@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -85,35 +84,6 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
     }
   };
 
-  const uploadReceipt = async (file: File, orderId: string): Promise<string | null> => {
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${orderId}_${Date.now()}.${fileExt}`;
-      const filePath = `receipts/${fileName}`;
-
-      console.log('Uploading file:', filePath);
-
-      const { error: uploadError } = await supabase.storage
-        .from('receipts')
-        .upload(filePath, file);
-
-      if (uploadError) {
-        console.error('Error uploading file:', uploadError);
-        throw uploadError;
-      }
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('receipts')
-        .getPublicUrl(filePath);
-
-      console.log('File uploaded successfully:', publicUrl);
-      return publicUrl;
-    } catch (error) {
-      console.error('Error in uploadReceipt:', error);
-      throw error;
-    }
-  };
-
   const createOrder = async () => {
     if (!user) {
       toast.error('Debes iniciar sesión para realizar una compra');
@@ -127,29 +97,10 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
 
     setLoading(true);
     try {
-      console.log('Creating order with data:', {
-        user_id: user.id,
-        total_usd: totalPrice,
-        total_bs: totalPrice * exchangeRate,
-        exchange_rate: exchangeRate,
-        payment_method_id: paymentInfo.methodId,
-        items_count: items.length
-      });
-
-      // Verificar que los productos existan
-      for (const item of items) {
-        const { data: product, error } = await supabase
-          .from('products')
-          .select('id, name, price')
-          .eq('id', item.id)
-          .single();
-          
-        if (error || !product) {
-          console.error('Product not found:', item.id, error);
-          toast.error(`Producto ${item.name} no encontrado`);
-          return;
-        }
-      }
+      console.log('Creating order for user:', user.id);
+      console.log('Items in cart:', items);
+      console.log('Total price:', totalPrice);
+      console.log('Exchange rate:', exchangeRate);
 
       // Crear la orden
       const orderData = {
@@ -172,6 +123,8 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
         status: 'pending'
       };
 
+      console.log('Creating order with data:', orderData);
+
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert([orderData])
@@ -180,10 +133,6 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
 
       if (orderError) {
         console.error('Order creation error:', orderError);
-        if (orderError.code === '42501') {
-          toast.error('Error de permisos. Por favor, inicia sesión nuevamente.');
-          return;
-        }
         throw new Error(`Error al crear orden: ${orderError.message}`);
       }
 
@@ -200,33 +149,19 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
 
       console.log('Creating order items:', orderItems);
 
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems);
+      // Insertar items uno por uno para mejor manejo de errores
+      for (const item of orderItems) {
+        const { error: itemError } = await supabase
+          .from('order_items')
+          .insert([item]);
 
-      if (itemsError) {
-        console.error('Order items error:', itemsError);
-        if (itemsError.code === '42501') {
-          toast.error('Error de permisos al crear items. Contacta soporte.');
-          return;
+        if (itemError) {
+          console.error('Order item error:', itemError);
+          throw new Error(`Error al crear item: ${itemError.message}`);
         }
-        throw new Error(`Error al crear items: ${itemsError.message}`);
       }
 
       console.log('Order items created successfully');
-
-      // Subir comprobante si existe
-      let receiptUrl = null;
-      if (paymentInfo.receiptFile) {
-        console.log('Uploading receipt...');
-        try {
-          receiptUrl = await uploadReceipt(paymentInfo.receiptFile, order.id);
-          console.log('Receipt uploaded successfully:', receiptUrl);
-        } catch (error) {
-          console.error('Error uploading receipt:', error);
-          // No fallar por el comprobante, continuar sin él
-        }
-      }
 
       // Crear el recibo de pago
       const receiptData = {
@@ -237,7 +172,6 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
         holder_phone: paymentInfo.holderPhone,
         holder_cedula: paymentInfo.holderCedula,
         reference_number: paymentInfo.referenceNumber,
-        receipt_image_url: receiptUrl,
         status: 'pending'
       };
 
@@ -249,10 +183,6 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
 
       if (receiptError) {
         console.error('Receipt error:', receiptError);
-        if (receiptError.code === '42501') {
-          toast.error('Error de permisos al crear recibo. Contacta soporte.');
-          return;
-        }
         throw new Error(`Error al crear recibo: ${receiptError.message}`);
       }
 

@@ -25,8 +25,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Crear usuario admin automáticamente si no existe
   const createAdminUser = async () => {
     try {
+      console.log('Checking for admin user...');
+      
+      // Verificar si el admin ya existe
+      const { data: existingUser } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('is_admin', true)
+        .single();
+
+      if (existingUser) {
+        console.log('Admin user already exists');
+        return;
+      }
+
       console.log('Creating admin user...');
-      const { error } = await supabase.auth.signUp({
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: 'admin@boxeomax.com',
         password: 'AdminBoxeo2024!',
         options: {
@@ -38,10 +52,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       });
       
-      if (error && !error.message.includes('already registered')) {
-        console.error('Error creating admin:', error);
-      } else {
-        console.log('Admin user created or already exists');
+      if (signUpError) {
+        console.log('Admin user might already exist in auth:', signUpError.message);
+      } else if (signUpData.user) {
+        console.log('Admin user created successfully');
+        
+        // Crear o actualizar el perfil como admin
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: signUpData.user.id,
+            first_name: 'Administrador',
+            last_name: 'BoxeoMax',
+            is_admin: true
+          });
+          
+        if (profileError) {
+          console.error('Error creating admin profile:', profileError);
+        }
       }
     } catch (error) {
       console.error('Error in createAdminUser:', error);
@@ -161,7 +189,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (error) {
         console.error('SignIn error:', error);
-        toast.error(error.message);
+        toast.error('Credenciales incorrectas. Verifica tu email y contraseña.');
       } else {
         toast.success('¡Sesión iniciada exitosamente!');
       }

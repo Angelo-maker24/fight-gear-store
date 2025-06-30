@@ -14,40 +14,46 @@ export const useExchangeRate = () => {
       
       // Intentar múltiples fuentes para obtener la tasa del BCV
       const sources = [
-        'https://pydolarve.org/api/v1/dollar?page=bcv',
-        'https://api.exchangerate-api.com/v4/latest/USD',
-        'https://ve.dolarapi.com/v1/dolares/oficial'
+        {
+          url: 'https://ve.dolarapi.com/v1/dolares/oficial',
+          parser: (data: any) => data?.promedio ? parseFloat(data.promedio) : null
+        },
+        {
+          url: 'https://pydolarve.org/api/v1/dollar?page=bcv',
+          parser: (data: any) => data?.monitors?.bcv?.price ? parseFloat(data.monitors.bcv.price) : null
+        },
+        {
+          url: 'https://api.exchangerate-api.com/v4/latest/USD',
+          parser: (data: any) => data?.rates?.VES ? parseFloat(data.rates.VES) : null
+        }
       ];
 
       for (const source of sources) {
         try {
-          const response = await fetch(source);
+          console.log(`Trying source: ${source.url}`);
+          const response = await fetch(source.url, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (!response.ok) {
+            console.log(`Source ${source.url} returned ${response.status}`);
+            continue;
+          }
+          
           const data = await response.json();
+          console.log(`Response from ${source.url}:`, data);
           
-          console.log(`Response from ${source}:`, data);
-          
-          // Procesar respuesta según la fuente
-          if (source.includes('pydolarve')) {
-            if (data?.monitors?.bcv?.price) {
-              const rate = parseFloat(data.monitors.bcv.price);
-              console.log('BCV rate from pydolarve:', rate);
-              return rate;
-            }
-          } else if (source.includes('exchangerate-api')) {
-            if (data?.rates?.VES) {
-              const rate = parseFloat(data.rates.VES);
-              console.log('BCV rate from exchangerate-api:', rate);
-              return rate;
-            }
-          } else if (source.includes('dolarapi')) {
-            if (data?.promedio) {
-              const rate = parseFloat(data.promedio);
-              console.log('BCV rate from dolarapi:', rate);
-              return rate;
-            }
+          const rate = source.parser(data);
+          if (rate && rate > 10) { // Validación básica
+            console.log(`Valid BCV rate found: ${rate} from ${source.url}`);
+            return rate;
           }
         } catch (error) {
-          console.error(`Error fetching from ${source}:`, error);
+          console.error(`Error fetching from ${source.url}:`, error);
           continue;
         }
       }
@@ -87,7 +93,7 @@ export const useExchangeRate = () => {
           toast.success(`Tasa actualizada: ${bcvRate.toFixed(2)} Bs/USD`);
         }
       } else {
-        console.log('Could not fetch valid BCV rate');
+        console.log('Could not fetch valid BCV rate, keeping stored rate');
         toast.warning('No se pudo obtener la tasa del BCV, usando tasa almacenada');
       }
     } catch (error) {
@@ -117,13 +123,13 @@ export const useExchangeRate = () => {
         
         console.log('Stored rate loaded:', rate);
         
-        // Si no es manual y ha pasado más de 6 horas, actualizar
+        // Si no es manual y ha pasado más de 2 horas, actualizar
         if (!data.use_manual_rate) {
           const lastUpdate = new Date(data.last_updated || 0);
           const now = new Date();
           const hoursSinceUpdate = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
           
-          if (hoursSinceUpdate > 6) {
+          if (hoursSinceUpdate > 2) {
             console.log('Rate is outdated, updating...');
             updateExchangeRate();
           }
@@ -143,10 +149,10 @@ export const useExchangeRate = () => {
   useEffect(() => {
     fetchStoredRate();
     
-    // Actualizar cada 6 horas
+    // Actualizar cada 2 horas
     const interval = setInterval(() => {
       updateExchangeRate();
-    }, 6 * 60 * 60 * 1000);
+    }, 2 * 60 * 60 * 1000);
 
     return () => clearInterval(interval);
   }, []);
