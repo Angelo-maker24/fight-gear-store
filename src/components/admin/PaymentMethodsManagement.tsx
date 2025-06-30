@@ -24,7 +24,8 @@ const getPaymentTypeLabel = (type: string) => {
 };
 
 export const PaymentMethodsManagement = () => {
-  const { paymentMethods, loading, refetch } = usePaymentMethods();
+  // Incluir métodos inactivos para el admin
+  const { paymentMethods, loading, refetch } = usePaymentMethods(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingMethod, setEditingMethod] = useState<PaymentMethod | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);

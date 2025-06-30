@@ -17,18 +17,24 @@ export interface PaymentMethod {
   created_at: string;
 }
 
-export const usePaymentMethods = () => {
+export const usePaymentMethods = (includeInactive = false) => {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchPaymentMethods = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      let query = supabase
         .from('payment_methods')
         .select('*')
-        .eq('is_active', true)
         .order('created_at', { ascending: false });
+
+      // Solo filtrar por activos si no se incluyen inactivos (para admin)
+      if (!includeInactive) {
+        query = query.eq('is_active', true);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setPaymentMethods(data || []);
@@ -42,7 +48,7 @@ export const usePaymentMethods = () => {
 
   useEffect(() => {
     fetchPaymentMethods();
-  }, []);
+  }, [includeInactive]);
 
   return {
     paymentMethods,

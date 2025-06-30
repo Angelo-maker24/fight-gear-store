@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -5,15 +6,15 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/hooks/useCart';
 import { usePaymentMethods } from '@/hooks/usePaymentMethods';
 import { useAuth } from '@/hooks/useAuth';
+import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { CreditCard, MapPin, Package, FileText, Upload, CheckCircle } from 'lucide-react';
+import { CreditCard, MapPin, Package, Upload, CheckCircle } from 'lucide-react';
 
 interface CheckoutProps {
   isOpen: boolean;
@@ -45,6 +46,7 @@ interface PaymentInfo {
 export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
   const { items, totalPrice, clearCart } = useCart();
   const { paymentMethods } = usePaymentMethods();
+  const { exchangeRate } = useExchangeRate();
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -71,8 +73,6 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
     receiptFile: null
   });
 
-  const exchangeRate = 50;
-
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -91,25 +91,26 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
       const fileName = `${orderId}_${Date.now()}.${fileExt}`;
       const filePath = `receipts/${fileName}`;
 
+      console.log('Uploading file:', filePath);
+
       const { error: uploadError } = await supabase.storage
         .from('receipts')
         .upload(filePath, file);
 
       if (uploadError) {
         console.error('Error uploading file:', uploadError);
-        toast.error('Error al subir el comprobante');
-        return null;
+        throw uploadError;
       }
 
       const { data: { publicUrl } } = supabase.storage
         .from('receipts')
         .getPublicUrl(filePath);
 
+      console.log('File uploaded successfully:', publicUrl);
       return publicUrl;
     } catch (error) {
       console.error('Error in uploadReceipt:', error);
-      toast.error('Error al procesar el comprobante');
-      return null;
+      throw error;
     }
   };
 
@@ -119,36 +120,46 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
       return;
     }
 
+    if (!paymentInfo.methodId) {
+      toast.error('Selecciona un método de pago');
+      return;
+    }
+
     setLoading(true);
     try {
-      console.log('Creating order with user:', user.id);
-      console.log('Payment method:', paymentInfo.methodId);
-      console.log('Total items:', items.length);
+      console.log('Creating order with data:', {
+        user_id: user.id,
+        total_usd: totalPrice,
+        total_bs: totalPrice * exchangeRate,
+        exchange_rate: exchangeRate,
+        payment_method_id: paymentInfo.methodId,
+        items_count: items.length
+      });
 
       // Crear la orden
+      const orderData = {
+        user_id: user.id,
+        total_usd: totalPrice,
+        total_bs: totalPrice * exchangeRate,
+        exchange_rate: exchangeRate,
+        payment_method_id: paymentInfo.methodId,
+        shipping_address: {
+          firstName: shippingInfo.firstName,
+          lastName: shippingInfo.lastName,
+          phone: shippingInfo.phone,
+          cedula: shippingInfo.cedula,
+          address: shippingInfo.address,
+          city: shippingInfo.city,
+          state: shippingInfo.state,
+          postalCode: shippingInfo.postalCode
+        },
+        notes: shippingInfo.notes,
+        status: 'pending'
+      };
+
       const { data: order, error: orderError } = await supabase
         .from('orders')
-        .insert([
-          {
-            user_id: user.id,
-            total_usd: totalPrice,
-            total_bs: totalPrice * exchangeRate,
-            exchange_rate: exchangeRate,
-            payment_method_id: paymentInfo.methodId,
-            shipping_address: {
-              firstName: shippingInfo.firstName,
-              lastName: shippingInfo.lastName,
-              phone: shippingInfo.phone,
-              cedula: shippingInfo.cedula,
-              address: shippingInfo.address,
-              city: shippingInfo.city,
-              state: shippingInfo.state,
-              postalCode: shippingInfo.postalCode
-            },
-            notes: shippingInfo.notes,
-            status: 'pending'
-          }
-        ])
+        .insert([orderData])
         .select()
         .single();
 
@@ -157,7 +168,7 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
         throw new Error(`Error al crear orden: ${orderError.message}`);
       }
 
-      console.log('Order created:', order);
+      console.log('Order created successfully:', order);
 
       // Crear los items de la orden
       const orderItems = items.map(item => ({
@@ -168,6 +179,8 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
         total_price: item.price * item.quantity
       }));
 
+      console.log('Creating order items:', orderItems);
+
       const { error: itemsError } = await supabase
         .from('order_items')
         .insert(orderItems);
@@ -177,41 +190,46 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
         throw new Error(`Error al crear items: ${itemsError.message}`);
       }
 
-      console.log('Order items created');
+      console.log('Order items created successfully');
 
       // Subir comprobante si existe
       let receiptUrl = null;
       if (paymentInfo.receiptFile) {
         console.log('Uploading receipt...');
-        receiptUrl = await uploadReceipt(paymentInfo.receiptFile, order.id);
-        if (!receiptUrl) {
-          throw new Error('Error al subir el comprobante');
+        try {
+          receiptUrl = await uploadReceipt(paymentInfo.receiptFile, order.id);
+          console.log('Receipt uploaded successfully:', receiptUrl);
+        } catch (error) {
+          console.error('Error uploading receipt:', error);
+          // No fallar por el comprobante, continuar sin él
         }
       }
 
       // Crear el recibo de pago
+      const receiptData = {
+        order_id: order.id,
+        user_id: user.id,
+        amount_paid: paymentInfo.amountPaid,
+        holder_name: paymentInfo.holderName,
+        holder_phone: paymentInfo.holderPhone,
+        holder_cedula: paymentInfo.holderCedula,
+        reference_number: paymentInfo.referenceNumber,
+        receipt_image_url: receiptUrl,
+        status: 'pending'
+      };
+
+      console.log('Creating payment receipt:', receiptData);
+
       const { error: receiptError } = await supabase
         .from('payment_receipts')
-        .insert([
-          {
-            order_id: order.id,
-            user_id: user.id,
-            amount_paid: paymentInfo.amountPaid,
-            holder_name: paymentInfo.holderName,
-            holder_phone: paymentInfo.holderPhone,
-            holder_cedula: paymentInfo.holderCedula,
-            reference_number: paymentInfo.referenceNumber,
-            receipt_image_url: receiptUrl,
-            status: 'pending'
-          }
-        ]);
+        .insert([receiptData]);
 
       if (receiptError) {
         console.error('Receipt error:', receiptError);
         throw new Error(`Error al crear recibo: ${receiptError.message}`);
       }
 
-      console.log('Payment receipt created');
+      console.log('Payment receipt created successfully');
 
       // Limpiar carrito y cerrar checkout
       clearCart();
