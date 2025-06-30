@@ -136,6 +136,21 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
         items_count: items.length
       });
 
+      // Verificar que los productos existan
+      for (const item of items) {
+        const { data: product, error } = await supabase
+          .from('products')
+          .select('id, name, price')
+          .eq('id', item.id)
+          .single();
+          
+        if (error || !product) {
+          console.error('Product not found:', item.id, error);
+          toast.error(`Producto ${item.name} no encontrado`);
+          return;
+        }
+      }
+
       // Crear la orden
       const orderData = {
         user_id: user.id,
@@ -165,6 +180,10 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
 
       if (orderError) {
         console.error('Order creation error:', orderError);
+        if (orderError.code === '42501') {
+          toast.error('Error de permisos. Por favor, inicia sesión nuevamente.');
+          return;
+        }
         throw new Error(`Error al crear orden: ${orderError.message}`);
       }
 
@@ -187,6 +206,10 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
 
       if (itemsError) {
         console.error('Order items error:', itemsError);
+        if (itemsError.code === '42501') {
+          toast.error('Error de permisos al crear items. Contacta soporte.');
+          return;
+        }
         throw new Error(`Error al crear items: ${itemsError.message}`);
       }
 
@@ -226,6 +249,10 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
 
       if (receiptError) {
         console.error('Receipt error:', receiptError);
+        if (receiptError.code === '42501') {
+          toast.error('Error de permisos al crear recibo. Contacta soporte.');
+          return;
+        }
         throw new Error(`Error al crear recibo: ${receiptError.message}`);
       }
 

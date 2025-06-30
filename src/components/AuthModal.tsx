@@ -33,10 +33,6 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
     phone: ''
   });
 
-  // Admin credentials
-  const adminEmail = 'admin@boxeomax.com';
-  const adminPassword = 'BoxeoMax2024!';
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -56,21 +52,9 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Check if it's admin registration
-    const isAdminRegistration = registerData.email === adminEmail;
-    
-    // For admin, validate against the predefined password
-    if (isAdminRegistration) {
-      if (registerData.password !== adminPassword) {
-        alert('Contraseña de administrador incorrecta');
-        return;
-      }
-    } else {
-      // For regular users, validate password confirmation
-      if (registerData.password !== registerData.confirmPassword) {
-        alert('Las contraseñas no coinciden');
-        return;
-      }
+    if (registerData.password !== registerData.confirmPassword) {
+      alert('Las contraseñas no coinciden');
+      return;
     }
 
     setLoading(true);
@@ -93,15 +77,19 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
     }
   };
 
-  const fillAdminCredentials = () => {
-    setRegisterData({
-      firstName: 'Administrador',
-      lastName: 'BoxeoMax',
-      email: adminEmail,
-      password: adminPassword,
-      confirmPassword: adminPassword,
-      phone: '+58 412-1234567'
-    });
+  // Función para login directo como admin
+  const handleAdminLogin = async () => {
+    setLoading(true);
+    try {
+      const { error } = await signIn('admin@boxeomax.com', 'AdminBoxeo2024!');
+      if (!error) {
+        onClose();
+      }
+    } catch (error) {
+      console.error('Admin login error:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -158,20 +146,24 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
                 {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
               </Button>
             </form>
-          </TabsContent>
 
-          <TabsContent value="register" className="space-y-4">
             <div className="text-center">
               <Button
                 type="button"
                 variant="outline"
-                onClick={fillAdminCredentials}
-                className="mb-4 text-xs"
+                onClick={handleAdminLogin}
+                disabled={loading}
+                className="w-full mt-2 bg-red-50 border-red-200 text-red-700 hover:bg-red-100"
               >
-                Llenar datos de administrador
+                🔐 Acceso Administrador
               </Button>
+              <p className="text-xs text-gray-500 mt-1">
+                Credenciales: admin@boxeomax.com / AdminBoxeo2024!
+              </p>
             </div>
+          </TabsContent>
 
+          <TabsContent value="register" className="space-y-4">
             <form onSubmit={handleRegister} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -237,29 +229,27 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
                 </div>
               </div>
 
-              {registerData.email !== adminEmail && (
-                <div>
-                  <Label htmlFor="confirmPassword">Confirmar Contraseña</Label>
-                  <div className="relative">
-                    <Input
-                      id="confirmPassword"
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      value={registerData.confirmPassword}
-                      onChange={(e) => setRegisterData({ ...registerData, confirmPassword: e.target.value })}
-                      required
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    >
-                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                  </div>
+              <div>
+                <Label htmlFor="confirmPassword">Confirmar Contraseña</Label>
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={registerData.confirmPassword}
+                    onChange={(e) => setRegisterData({ ...registerData, confirmPassword: e.target.value })}
+                    required
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
                 </div>
-              )}
+              </div>
 
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? 'Registrando...' : 'Registrarse'}

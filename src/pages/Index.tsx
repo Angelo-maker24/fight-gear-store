@@ -10,11 +10,9 @@ import { AuthModal } from '@/components/AuthModal';
 const Index = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [authType, setAuthType] = useState<'user' | 'admin'>('user');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
-  const handleAuthOpen = (type: 'user' | 'admin') => {
-    setAuthType(type);
+  const handleAuthOpen = () => {
     setIsAuthOpen(true);
   };
 
@@ -41,7 +39,6 @@ const Index = () => {
       <AuthModal 
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
-        type={authType}
       />
     </div>
   );

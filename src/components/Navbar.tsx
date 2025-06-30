@@ -10,7 +10,7 @@ import { useNavigate } from 'react-router-dom';
 
 interface NavbarProps {
   onCartOpen: () => void;
-  onAuthOpen: (type: 'user' | 'admin') => void;
+  onAuthOpen: () => void;
   onCategorySelect: (category: string) => void;
   selectedCategory: string;
 }
@@ -79,26 +79,15 @@ export const Navbar = ({ onCartOpen, onAuthOpen, onCategorySelect, selectedCateg
                 </Button>
               </div>
             ) : (
-              <>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => onAuthOpen('user')}
-                  className="text-white hover:text-gold-400 transition-colors"
-                >
-                  <User className="w-4 h-4 mr-1" />
-                  Usuario
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => onAuthOpen('admin')}
-                  className="text-white hover:text-gold-400 transition-colors"
-                >
-                  <UserCog className="w-4 h-4 mr-1" />
-                  Admin
-                </Button>
-              </>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={onAuthOpen}
+                className="text-white hover:text-gold-400 transition-colors"
+              >
+                <User className="w-4 h-4 mr-1" />
+                Iniciar Sesión
+              </Button>
             )}
           </div>
         </div>
@@ -171,4 +160,3 @@ export const Navbar = ({ onCartOpen, onAuthOpen, onCategorySelect, selectedCateg
     </nav>
   );
 };
-
