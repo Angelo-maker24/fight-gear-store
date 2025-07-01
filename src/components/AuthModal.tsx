@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -77,11 +76,11 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
     }
   };
 
-  // Función para login directo como admin
+  // Función para login directo como admin con credenciales actualizadas
   const handleAdminLogin = async () => {
     setLoading(true);
     try {
-      const { error } = await signIn('admin@boxeomax.com', 'AdminBoxeo2024!');
+      const { error } = await signIn('boxeomaxadmin@gmail.com', 'AdminBoxeo2024!');
       if (!error) {
         onClose();
       }
@@ -158,7 +157,7 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
                 🔐 Acceso Administrador
               </Button>
               <p className="text-xs text-gray-500 mt-1">
-                Credenciales: admin@boxeomax.com / AdminBoxeo2024!
+                Credenciales: boxeomaxadmin@gmail.com / AdminBoxeo2024!
               </p>
             </div>
           </TabsContent>

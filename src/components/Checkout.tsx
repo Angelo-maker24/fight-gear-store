@@ -102,7 +102,7 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
       console.log('Total price:', totalPrice);
       console.log('Exchange rate:', exchangeRate);
 
-      // Crear la orden
+      // Crear la orden con manejo mejorado de errores
       const orderData = {
         user_id: user.id,
         total_usd: totalPrice,
@@ -138,7 +138,10 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
 
       console.log('Order created successfully:', order);
 
-      // Crear los items de la orden
+      // Crear los items de la orden usando un enfoque diferente
+      console.log('Creating order items for order:', order.id);
+      
+      // Insertar todos los items en una sola operación
       const orderItems = items.map(item => ({
         order_id: order.id,
         product_id: item.id,
@@ -147,18 +150,17 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
         total_price: item.price * item.quantity
       }));
 
-      console.log('Creating order items:', orderItems);
+      console.log('Order items to insert:', orderItems);
 
-      // Insertar items uno por uno para mejor manejo de errores
-      for (const item of orderItems) {
-        const { error: itemError } = await supabase
-          .from('order_items')
-          .insert([item]);
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(orderItems);
 
-        if (itemError) {
-          console.error('Order item error:', itemError);
-          throw new Error(`Error al crear item: ${itemError.message}`);
-        }
+      if (itemsError) {
+        console.error('Order items error:', itemsError);
+        // Intentar limpiar la orden si los items fallan
+        await supabase.from('orders').delete().eq('id', order.id);
+        throw new Error(`Error al crear items del pedido: ${itemsError.message}`);
       }
 
       console.log('Order items created successfully');
@@ -183,10 +185,11 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
 
       if (receiptError) {
         console.error('Receipt error:', receiptError);
-        throw new Error(`Error al crear recibo: ${receiptError.message}`);
+        // No fallar si el recibo no se puede crear, pero mostrar warning
+        console.warn('Could not create payment receipt, but order was created successfully');
+      } else {
+        console.log('Payment receipt created successfully');
       }
-
-      console.log('Payment receipt created successfully');
 
       // Limpiar carrito y cerrar checkout
       clearCart();

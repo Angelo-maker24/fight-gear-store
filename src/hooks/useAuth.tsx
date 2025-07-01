@@ -27,12 +27,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       console.log('Checking for admin user...');
       
-      // Verificar si el admin ya existe
+      // Verificar si el admin ya existe usando email válido
       const { data: existingUser } = await supabase
         .from('profiles')
         .select('*')
         .eq('is_admin', true)
-        .single();
+        .maybeSingle();
 
       if (existingUser) {
         console.log('Admin user already exists');
@@ -40,8 +40,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       console.log('Creating admin user...');
+      // Usar un email válido para el admin
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: 'admin@boxeomax.com',
+        email: 'boxeomaxadmin@gmail.com',
         password: 'AdminBoxeo2024!',
         options: {
           emailRedirectTo: `${window.location.origin}/`,
@@ -54,6 +55,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (signUpError) {
         console.log('Admin user might already exist in auth:', signUpError.message);
+        // Si el usuario ya existe en auth, buscar su ID y crear el perfil
+        const { data: { user: existingAuthUser } } = await supabase.auth.signInWithPassword({
+          email: 'boxeomaxadmin@gmail.com',
+          password: 'AdminBoxeo2024!'
+        });
+        
+        if (existingAuthUser) {
+          await supabase.auth.signOut(); // Cerrar sesión inmediatamente
+          
+          // Crear o actualizar el perfil como admin
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .upsert({
+              id: existingAuthUser.id,
+              first_name: 'Administrador',
+              last_name: 'BoxeoMax',
+              is_admin: true
+            });
+            
+          if (profileError) {
+            console.error('Error creating admin profile:', profileError);
+          }
+        }
       } else if (signUpData.user) {
         console.log('Admin user created successfully');
         
@@ -88,21 +112,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Check admin status
+          // Check admin status con manejo de errores mejorado
           setTimeout(async () => {
             try {
               const { data: profile, error } = await supabase
                 .from('profiles')
                 .select('is_admin')
                 .eq('id', session.user.id)
-                .single();
+                .maybeSingle();
               
               console.log('Profile data:', profile, 'Error:', error);
               
-              if (error && error.code === 'PGRST116') {
+              if (error) {
+                console.error('Error fetching profile:', error);
+                setIsAdmin(false);
+              } else if (!profile) {
                 // Profile doesn't exist, create it
                 console.log('Creating profile for user:', session.user.email);
-                const isAdminUser = session.user.email === 'admin@boxeomax.com';
+                const isAdminUser = session.user.email === 'boxeomaxadmin@gmail.com';
                 
                 const { error: insertError } = await supabase
                   .from('profiles')
@@ -123,9 +150,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                   console.log('Profile created successfully');
                   setIsAdmin(isAdminUser);
                 }
-              } else if (error) {
-                console.error('Error fetching profile:', error);
-                setIsAdmin(false);
               } else {
                 setIsAdmin(profile?.is_admin || false);
               }

@@ -10,52 +10,45 @@ export const useExchangeRate = () => {
 
   const fetchBCVRate = async (): Promise<number | null> => {
     try {
-      console.log('Fetching BCV rate from official sources...');
+      console.log('Fetching BCV rate from PyDolar...');
       
-      // Intentar múltiples fuentes para obtener la tasa del BCV
-      const sources = [
-        {
-          url: 'https://ve.dolarapi.com/v1/dolares/oficial',
-          parser: (data: any) => data?.promedio ? parseFloat(data.promedio) : null
-        },
-        {
-          url: 'https://pydolarve.org/api/v1/dollar?page=bcv',
-          parser: (data: any) => data?.monitors?.bcv?.price ? parseFloat(data.monitors.bcv.price) : null
-        },
-        {
-          url: 'https://api.exchangerate-api.com/v4/latest/USD',
-          parser: (data: any) => data?.rates?.VES ? parseFloat(data.rates.VES) : null
-        }
-      ];
-
-      for (const source of sources) {
-        try {
-          console.log(`Trying source: ${source.url}`);
-          const response = await fetch(source.url, {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json'
-            }
-          });
-          
-          if (!response.ok) {
-            console.log(`Source ${source.url} returned ${response.status}`);
-            continue;
+      // Usar solo PyDolar que no tiene problemas de CORS
+      try {
+        const response = await fetch('https://pydolarve.org/api/v1/dollar?page=bcv', {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
           }
-          
-          const data = await response.json();
-          console.log(`Response from ${source.url}:`, data);
-          
-          const rate = source.parser(data);
-          if (rate && rate > 10) { // Validación básica
-            console.log(`Valid BCV rate found: ${rate} from ${source.url}`);
+        });
+        
+        if (!response.ok) {
+          console.log(`PyDolar returned ${response.status}`);
+          return null;
+        }
+        
+        const data = await response.json();
+        console.log('Response from PyDolar:', data);
+        
+        // Buscar la tasa del USD (dólar estadounidense)
+        const usdRate = data?.monitors?.usd?.price;
+        if (usdRate && usdRate > 10) { // Validación básica
+          console.log(`Valid BCV rate found: ${usdRate} from PyDolar`);
+          return usdRate;
+        }
+        
+        // Si no encontramos USD, intentar con otras fuentes confiables
+        const alternativeSources = ['banesco', 'mercantil_banco', 'provincial', 'bnc'];
+        for (const source of alternativeSources) {
+          const rate = data?.monitors?.[source]?.price;
+          if (rate && rate > 10) {
+            console.log(`Valid rate found from ${source}: ${rate}`);
             return rate;
           }
-        } catch (error) {
-          console.error(`Error fetching from ${source.url}:`, error);
-          continue;
         }
+        
+      } catch (error) {
+        console.error('Error fetching from PyDolar:', error);
       }
       
       console.log('No valid rate found from any source');
@@ -74,23 +67,36 @@ export const useExchangeRate = () => {
       if (bcvRate && bcvRate > 10) { // Validación básica
         console.log('Valid BCV rate fetched:', bcvRate);
         
-        // Actualizar en la base de datos
-        const { error } = await supabase
-          .from('exchange_rate_config')
-          .upsert({
-            last_bcv_rate: bcvRate,
-            last_updated: new Date().toISOString(),
-            use_manual_rate: false
-          });
+        try {
+          // Actualizar en la base de datos
+          const { error } = await supabase
+            .from('exchange_rate_config')
+            .upsert({
+              last_bcv_rate: bcvRate,
+              last_updated: new Date().toISOString(),
+              use_manual_rate: false
+            }, {
+              onConflict: 'id'
+            });
 
-        if (error) {
-          console.error('Error updating exchange rate:', error);
-          toast.error('Error al actualizar tasa de cambio');
-        } else {
+          if (error) {
+            console.error('Error updating exchange rate:', error);
+            // Si hay error con la base de datos, al menos actualizar localmente
+            setExchangeRate(bcvRate);
+            setLastUpdated(new Date());
+            toast.success(`Tasa actualizada localmente: ${bcvRate.toFixed(2)} Bs/USD`);
+          } else {
+            setExchangeRate(bcvRate);
+            setLastUpdated(new Date());
+            console.log('Exchange rate updated successfully to:', bcvRate);
+            toast.success(`Tasa actualizada: ${bcvRate.toFixed(2)} Bs/USD`);
+          }
+        } catch (dbError) {
+          console.error('Database error:', dbError);
+          // Actualizar localmente si hay problema con la base de datos
           setExchangeRate(bcvRate);
           setLastUpdated(new Date());
-          console.log('Exchange rate updated successfully to:', bcvRate);
-          toast.success(`Tasa actualizada: ${bcvRate.toFixed(2)} Bs/USD`);
+          toast.success(`Tasa actualizada localmente: ${bcvRate.toFixed(2)} Bs/USD`);
         }
       } else {
         console.log('Could not fetch valid BCV rate, keeping stored rate');
@@ -109,10 +115,13 @@ export const useExchangeRate = () => {
         .select('*')
         .order('last_updated', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
         console.error('Error fetching stored rate:', error);
+        // Si hay error, usar valores por defecto
+        setExchangeRate(50);
+        setLastUpdated(null);
         return;
       }
 
@@ -123,24 +132,29 @@ export const useExchangeRate = () => {
         
         console.log('Stored rate loaded:', rate);
         
-        // Si no es manual y ha pasado más de 2 horas, actualizar
+        // Si no es manual y ha pasado más de 6 horas, actualizar
         if (!data.use_manual_rate) {
           const lastUpdate = new Date(data.last_updated || 0);
           const now = new Date();
           const hoursSinceUpdate = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
           
-          if (hoursSinceUpdate > 2) {
+          if (hoursSinceUpdate > 6) {
             console.log('Rate is outdated, updating...');
             updateExchangeRate();
           }
         }
       } else {
-        // Si no hay configuración, crear una y obtener la tasa del BCV
-        console.log('No exchange rate config found, creating initial setup...');
+        // Si no hay configuración, usar valores por defecto y intentar obtener la tasa
+        console.log('No exchange rate config found, using defaults and trying to fetch rate...');
+        setExchangeRate(50);
+        setLastUpdated(null);
         updateExchangeRate();
       }
     } catch (error) {
       console.error('Error in fetchStoredRate:', error);
+      // En caso de error, usar valores por defecto
+      setExchangeRate(50);
+      setLastUpdated(null);
     } finally {
       setLoading(false);
     }
@@ -149,10 +163,10 @@ export const useExchangeRate = () => {
   useEffect(() => {
     fetchStoredRate();
     
-    // Actualizar cada 2 horas
+    // Actualizar cada 6 horas
     const interval = setInterval(() => {
       updateExchangeRate();
-    }, 2 * 60 * 60 * 1000);
+    }, 6 * 60 * 60 * 1000);
 
     return () => clearInterval(interval);
   }, []);
