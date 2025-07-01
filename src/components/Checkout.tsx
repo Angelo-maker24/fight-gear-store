@@ -102,7 +102,7 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
       console.log('Total price:', totalPrice);
       console.log('Exchange rate:', exchangeRate);
 
-      // Crear la orden con manejo mejorado de errores
+      // Crear la orden
       const orderData = {
         user_id: user.id,
         total_usd: totalPrice,
@@ -138,32 +138,33 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
 
       console.log('Order created successfully:', order);
 
-      // Crear los items de la orden usando un enfoque diferente
+      // Crear los items de la orden uno por uno para evitar problemas de RLS
       console.log('Creating order items for order:', order.id);
       
-      // Insertar todos los items en una sola operación
-      const orderItems = items.map(item => ({
-        order_id: order.id,
-        product_id: item.id,
-        quantity: item.quantity,
-        unit_price: item.price,
-        total_price: item.price * item.quantity
-      }));
+      for (const item of items) {
+        const orderItemData = {
+          order_id: order.id,
+          product_id: item.id,
+          quantity: item.quantity,
+          unit_price: item.price,
+          total_price: item.price * item.quantity
+        };
 
-      console.log('Order items to insert:', orderItems);
+        console.log('Creating order item:', orderItemData);
 
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems);
+        const { error: itemError } = await supabase
+          .from('order_items')
+          .insert([orderItemData]);
 
-      if (itemsError) {
-        console.error('Order items error:', itemsError);
-        // Intentar limpiar la orden si los items fallan
-        await supabase.from('orders').delete().eq('id', order.id);
-        throw new Error(`Error al crear items del pedido: ${itemsError.message}`);
+        if (itemError) {
+          console.error('Order item error:', itemError);
+          // Si falla un item, limpiar la orden y fallar
+          await supabase.from('orders').delete().eq('id', order.id);
+          throw new Error(`Error al crear item: ${itemError.message}`);
+        }
       }
 
-      console.log('Order items created successfully');
+      console.log('All order items created successfully');
 
       // Crear el recibo de pago
       const receiptData = {

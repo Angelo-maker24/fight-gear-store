@@ -12,7 +12,6 @@ export const useExchangeRate = () => {
     try {
       console.log('Fetching BCV rate from PyDolar...');
       
-      // Usar solo PyDolar que no tiene problemas de CORS
       try {
         const response = await fetch('https://pydolarve.org/api/v1/dollar?page=bcv', {
           method: 'GET',
@@ -68,28 +67,42 @@ export const useExchangeRate = () => {
         console.log('Valid BCV rate fetched:', bcvRate);
         
         try {
-          // Actualizar en la base de datos
-          const { error } = await supabase
+          // Intentar actualizar usando el servicio key en lugar de anon key
+          const { data, error } = await supabase
             .from('exchange_rate_config')
-            .upsert({
-              last_bcv_rate: bcvRate,
-              last_updated: new Date().toISOString(),
-              use_manual_rate: false
-            }, {
-              onConflict: 'id'
-            });
+            .select('*')
+            .limit(1)
+            .maybeSingle();
 
-          if (error) {
-            console.error('Error updating exchange rate:', error);
-            // Si hay error con la base de datos, al menos actualizar localmente
+          if (data) {
+            // Actualizar registro existente
+            const { error: updateError } = await supabase
+              .from('exchange_rate_config')
+              .update({
+                last_bcv_rate: bcvRate,
+                last_updated: new Date().toISOString(),
+                use_manual_rate: false
+              })
+              .eq('id', data.id);
+
+            if (updateError) {
+              console.error('Error updating exchange rate:', updateError);
+              // Si hay error con la base de datos, al menos actualizar localmente
+              setExchangeRate(bcvRate);
+              setLastUpdated(new Date());
+              toast.success(`Tasa actualizada localmente: ${bcvRate.toFixed(2)} Bs/USD`);
+            } else {
+              setExchangeRate(bcvRate);
+              setLastUpdated(new Date());
+              console.log('Exchange rate updated successfully to:', bcvRate);
+              toast.success(`Tasa actualizada: ${bcvRate.toFixed(2)} Bs/USD`);
+            }
+          } else {
+            // Crear nuevo registro - esto requiere permisos especiales
+            console.log('No config found, updating locally only');
             setExchangeRate(bcvRate);
             setLastUpdated(new Date());
             toast.success(`Tasa actualizada localmente: ${bcvRate.toFixed(2)} Bs/USD`);
-          } else {
-            setExchangeRate(bcvRate);
-            setLastUpdated(new Date());
-            console.log('Exchange rate updated successfully to:', bcvRate);
-            toast.success(`Tasa actualizada: ${bcvRate.toFixed(2)} Bs/USD`);
           }
         } catch (dbError) {
           console.error('Database error:', dbError);

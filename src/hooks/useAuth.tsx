@@ -22,88 +22,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // Crear usuario admin automáticamente si no existe
-  const createAdminUser = async () => {
-    try {
-      console.log('Checking for admin user...');
-      
-      // Verificar si el admin ya existe usando email válido
-      const { data: existingUser } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('is_admin', true)
-        .maybeSingle();
-
-      if (existingUser) {
-        console.log('Admin user already exists');
-        return;
-      }
-
-      console.log('Creating admin user...');
-      // Usar un email válido para el admin
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: 'boxeomaxadmin@gmail.com',
-        password: 'AdminBoxeo2024!',
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            first_name: 'Administrador',
-            last_name: 'BoxeoMax'
-          }
-        }
-      });
-      
-      if (signUpError) {
-        console.log('Admin user might already exist in auth:', signUpError.message);
-        // Si el usuario ya existe en auth, buscar su ID y crear el perfil
-        const { data: { user: existingAuthUser } } = await supabase.auth.signInWithPassword({
-          email: 'boxeomaxadmin@gmail.com',
-          password: 'AdminBoxeo2024!'
-        });
-        
-        if (existingAuthUser) {
-          await supabase.auth.signOut(); // Cerrar sesión inmediatamente
-          
-          // Crear o actualizar el perfil como admin
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .upsert({
-              id: existingAuthUser.id,
-              first_name: 'Administrador',
-              last_name: 'BoxeoMax',
-              is_admin: true
-            });
-            
-          if (profileError) {
-            console.error('Error creating admin profile:', profileError);
-          }
-        }
-      } else if (signUpData.user) {
-        console.log('Admin user created successfully');
-        
-        // Crear o actualizar el perfil como admin
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .upsert({
-            id: signUpData.user.id,
-            first_name: 'Administrador',
-            last_name: 'BoxeoMax',
-            is_admin: true
-          });
-          
-        if (profileError) {
-          console.error('Error creating admin profile:', profileError);
-        }
-      }
-    } catch (error) {
-      console.error('Error in createAdminUser:', error);
-    }
-  };
-
   useEffect(() => {
-    // Crear admin al inicio
-    createAdminUser();
-
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -112,7 +31,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Check admin status con manejo de errores mejorado
+          // Check admin status
           setTimeout(async () => {
             try {
               const { data: profile, error } = await supabase

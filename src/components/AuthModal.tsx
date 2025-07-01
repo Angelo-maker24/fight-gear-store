@@ -76,7 +76,7 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
     }
   };
 
-  // Función para login directo como admin con credenciales actualizadas
+  // Función para login directo como admin
   const handleAdminLogin = async () => {
     setLoading(true);
     try {
