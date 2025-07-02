@@ -21,6 +21,7 @@ interface CheckoutProps {
 }
 
 export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
+  // Hooks para obtener datos del carrito, métodos de pago, tasa de cambio y usuario
   const { cart, getTotalPrice, clearCart } = useCart();
   const { paymentMethods } = usePaymentMethods();
   const { exchangeRate, rateInBs } = useExchangeRate();
@@ -40,7 +41,7 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
 
-  // Función para validar y limpiar datos numéricos
+  // Función para validar y limpiar datos numéricos antes de enviar a Supabase
   const validateNumericField = (value: string | number | null | undefined): number => {
     if (value === null || value === undefined || value === '' || isNaN(Number(value))) {
       return 0;
@@ -48,7 +49,7 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
     return Number(value);
   };
 
-  // Función para limpiar strings
+  // Función para limpiar strings y evitar valores nulos problemáticos
   const cleanStringField = (value: string | null | undefined): string | null => {
     if (!value || value.trim() === '') {
       return null;
@@ -56,13 +57,15 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
     return value.trim();
   };
 
-  // Calcular totales
+  // Calcular totales usando la tasa de cambio actual
   const totalUSD = getTotalPrice();
   const totalBS = totalUSD * rateInBs;
 
+  // Función principal para procesar el checkout
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validaciones básicas antes de procesar
     if (!user) {
       toast.error('Debes iniciar sesión para realizar una compra');
       return;
@@ -88,7 +91,7 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
       console.log('Total BS:', totalBS);
       console.log('Tasa de cambio:', rateInBs);
 
-      // Preparar datos de la orden con validación
+      // Preparar datos de la orden con validación numérica
       const orderData = {
         user_id: user.id,
         total_usd: validateNumericField(totalUSD),
@@ -124,7 +127,7 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
 
       console.log('Orden creada exitosamente:', orderResult);
 
-      // Preparar items de la orden con validación
+      // Preparar items de la orden con validación numérica
       const orderItems = cart.map(item => ({
         order_id: orderResult.id,
         product_id: item.id,
@@ -147,7 +150,7 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
 
       console.log('Items de orden creados exitosamente');
 
-      // Limpiar carrito y cerrar checkout
+      // Limpiar carrito y cerrar checkout si todo fue exitoso
       clearCart();
       toast.success('¡Orden creada exitosamente! Te contactaremos pronto para confirmar el pago.');
       onClose();
@@ -160,6 +163,7 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
     }
   };
 
+  // Si el carrito está vacío, mostrar mensaje apropiado
   if (cart.length === 0) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -237,7 +241,7 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
                 </CardContent>
               </Card>
 
-              {/* Información de envío */}
+              {/* Información de envío con validación */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">

@@ -3,100 +3,112 @@ import { useState, useEffect, createContext, useContext } from 'react';
 import { toast } from 'sonner';
 import { Product } from '@/hooks/useProducts';
 
+// Interfaz para el item del carrito con cantidad
 interface CartItem extends Product {
   quantity: number;
 }
 
+// Interfaz del contexto del carrito actualizada
 interface CartContextType {
-  items: CartItem[];
+  cart: CartItem[];  // Cambio de 'items' a 'cart' para coincidir con el uso
   addItem: (product: Product, quantity?: number) => void;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
   totalItems: number;
   totalPrice: number;
+  getTotalPrice: () => number;  // Función para obtener el precio total
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: React.ReactNode }) => {
-  const [items, setItems] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>([]);
 
-  // Load cart from localStorage on mount
+  // Cargar carrito desde localStorage al montar
   useEffect(() => {
     const savedCart = localStorage.getItem('cart');
     if (savedCart) {
       try {
-        setItems(JSON.parse(savedCart));
+        setCart(JSON.parse(savedCart));
       } catch (error) {
         console.error('Error loading cart:', error);
       }
     }
   }, []);
 
-  // Save cart to localStorage whenever items change
+  // Guardar carrito en localStorage cuando cambie
   useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(items));
-  }, [items]);
+    localStorage.setItem('cart', JSON.stringify(cart));
+  }, [cart]);
 
+  // Función para agregar item al carrito
   const addItem = (product: Product, quantity = 1) => {
-    setItems(currentItems => {
-      const existingItem = currentItems.find(item => item.id === product.id);
+    setCart(currentCart => {
+      const existingItem = currentCart.find(item => item.id === product.id);
       
       if (existingItem) {
         toast.success(`Cantidad actualizada: ${product.name}`);
-        return currentItems.map(item =>
+        return currentCart.map(item =>
           item.id === product.id
             ? { ...item, quantity: item.quantity + quantity }
             : item
         );
       } else {
         toast.success(`Agregado al carrito: ${product.name}`);
-        return [...currentItems, { ...product, quantity }];
+        return [...currentCart, { ...product, quantity }];
       }
     });
   };
 
+  // Función para remover item del carrito
   const removeItem = (productId: string) => {
-    setItems(currentItems => {
-      const item = currentItems.find(item => item.id === productId);
+    setCart(currentCart => {
+      const item = currentCart.find(item => item.id === productId);
       if (item) {
         toast.success(`Eliminado del carrito: ${item.name}`);
       }
-      return currentItems.filter(item => item.id !== productId);
+      return currentCart.filter(item => item.id !== productId);
     });
   };
 
+  // Función para actualizar cantidad
   const updateQuantity = (productId: string, quantity: number) => {
     if (quantity <= 0) {
       removeItem(productId);
       return;
     }
 
-    setItems(currentItems =>
-      currentItems.map(item =>
+    setCart(currentCart =>
+      currentCart.map(item =>
         item.id === productId ? { ...item, quantity } : item
       )
     );
   };
 
+  // Función para limpiar carrito
   const clearCart = () => {
-    setItems([]);
+    setCart([]);
     toast.success('Carrito vaciado');
   };
 
-  const totalItems = items.reduce((total, item) => total + item.quantity, 0);
-  const totalPrice = items.reduce((total, item) => total + (item.price * item.quantity), 0);
+  // Calcular totales
+  const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
+  const totalPrice = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+  
+  // Función getTotalPrice para compatibilidad
+  const getTotalPrice = () => totalPrice;
 
   return (
     <CartContext.Provider value={{
-      items,
+      cart,
       addItem,
       removeItem,
       updateQuantity,
       clearCart,
       totalItems,
-      totalPrice
+      totalPrice,
+      getTotalPrice
     }}>
       {children}
     </CartContext.Provider>

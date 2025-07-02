@@ -12,16 +12,19 @@ import { toast } from 'sonner';
 import { RefreshCw, DollarSign, TrendingUp } from 'lucide-react';
 
 export const ExchangeRateConfig = () => {
+  // Hooks para obtener datos de tasa de cambio
   const { exchangeRate, loading, lastUpdated, updateExchangeRate } = useExchangeRate();
   const [useManualRate, setUseManualRate] = useState(false);
   const [manualRate, setManualRate] = useState('');
   const [updating, setUpdating] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // Cargar configuración al montar el componente
   useEffect(() => {
     fetchConfig();
   }, []);
 
+  // Función para obtener la configuración actual de la base de datos
   const fetchConfig = async () => {
     try {
       const { data, error } = await supabase
@@ -40,6 +43,7 @@ export const ExchangeRateConfig = () => {
     }
   };
 
+  // Función para actualizar manualmente la tasa del BCV
   const handleUpdateBCV = async () => {
     setUpdating(true);
     try {
@@ -52,27 +56,42 @@ export const ExchangeRateConfig = () => {
     }
   };
 
+  // Función para guardar la configuración de tasa de cambio
   const handleSaveConfig = async () => {
     setSaving(true);
     try {
+      // Validar tasa manual si está habilitada
+      const manualRateValue = parseFloat(manualRate);
+      if (useManualRate && (isNaN(manualRateValue) || manualRateValue <= 0)) {
+        toast.error('La tasa manual debe ser un número válido mayor que 0');
+        setSaving(false);
+        return;
+      }
+
       const { error } = await supabase
         .from('exchange_rate_config')
         .upsert({
           use_manual_rate: useManualRate,
-          manual_rate: parseFloat(manualRate) || null,
+          manual_rate: useManualRate ? manualRateValue : null,
           last_updated: new Date().toISOString()
         });
 
       if (error) throw error;
 
       toast.success('Configuración guardada exitosamente');
+      
+      // Recargar configuración después de guardar
+      fetchConfig();
+      
     } catch (error: any) {
+      console.error('Error saving config:', error);
       toast.error('Error al guardar configuración: ' + error.message);
     } finally {
       setSaving(false);
     }
   };
 
+  // Mostrar loader mientras carga
   if (loading) {
     return (
       <Card>
@@ -120,13 +139,13 @@ export const ExchangeRateConfig = () => {
             </div>
           </div>
 
-          {/* Configuración automática */}
+          {/* Configuración automática del BCV */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h4 className="font-medium">Actualización Automática del BCV</h4>
                 <p className="text-sm text-gray-600">
-                  Se actualiza automáticamente cada 24 horas desde la fuente oficial
+                  Se actualiza automáticamente cada 6 horas desde la fuente oficial
                 </p>
               </div>
               <Button
@@ -155,6 +174,7 @@ export const ExchangeRateConfig = () => {
               />
             </div>
 
+            {/* Campo de tasa manual (solo visible si está habilitado) */}
             {useManualRate && (
               <div className="space-y-4">
                 <div>
@@ -163,6 +183,7 @@ export const ExchangeRateConfig = () => {
                     id="manualRate"
                     type="number"
                     step="0.01"
+                    min="0.01"
                     value={manualRate}
                     onChange={(e) => setManualRate(e.target.value)}
                     placeholder="Ejemplo: 36.50"
@@ -172,6 +193,7 @@ export const ExchangeRateConfig = () => {
             )}
           </div>
 
+          {/* Botón para guardar configuración */}
           <div className="flex justify-end">
             <Button
               onClick={handleSaveConfig}
@@ -184,7 +206,7 @@ export const ExchangeRateConfig = () => {
         </CardContent>
       </Card>
 
-      {/* Información adicional */}
+      {/* Información adicional para el administrador */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Información Importante</CardTitle>
@@ -196,7 +218,7 @@ export const ExchangeRateConfig = () => {
           </div>
           <div className="flex items-start space-x-2">
             <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-            <p>La actualización automática ocurre cada 24 horas</p>
+            <p>La actualización automática ocurre cada 6 horas</p>
           </div>
           <div className="flex items-start space-x-2">
             <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>

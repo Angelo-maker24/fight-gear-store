@@ -8,6 +8,7 @@ export const useExchangeRate = () => {
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
+  // Función para obtener la tasa del BCV desde PyDolar
   const fetchBCVRate = async (): Promise<number | null> => {
     try {
       console.log('Fetching BCV rate from PyDolar...');
@@ -58,6 +59,7 @@ export const useExchangeRate = () => {
     }
   };
 
+  // Función para actualizar la tasa de cambio
   const updateExchangeRate = async () => {
     try {
       console.log('Updating exchange rate...');
@@ -67,7 +69,7 @@ export const useExchangeRate = () => {
         console.log('Valid BCV rate fetched:', bcvRate);
         
         try {
-          // Intentar actualizar usando el servicio key en lugar de anon key
+          // Verificar si ya existe una configuración
           const { data, error } = await supabase
             .from('exchange_rate_config')
             .select('*')
@@ -86,8 +88,8 @@ export const useExchangeRate = () => {
               .eq('id', data.id);
 
             if (updateError) {
-              console.error('Error updating exchange rate:', updateError);
-              // Si hay error con la base de datos, al menos actualizar localmente
+              console.error('Error updating exchange rate in DB:', updateError);
+              // Actualizar localmente si hay error con la base de datos
               setExchangeRate(bcvRate);
               setLastUpdated(new Date());
               toast.success(`Tasa actualizada localmente: ${bcvRate.toFixed(2)} Bs/USD`);
@@ -98,7 +100,7 @@ export const useExchangeRate = () => {
               toast.success(`Tasa actualizada: ${bcvRate.toFixed(2)} Bs/USD`);
             }
           } else {
-            // Crear nuevo registro - esto requiere permisos especiales
+            // Si no existe configuración, solo actualizar localmente
             console.log('No config found, updating locally only');
             setExchangeRate(bcvRate);
             setLastUpdated(new Date());
@@ -121,6 +123,7 @@ export const useExchangeRate = () => {
     }
   };
 
+  // Función para obtener la tasa almacenada
   const fetchStoredRate = async () => {
     try {
       const { data, error } = await supabase
@@ -157,8 +160,8 @@ export const useExchangeRate = () => {
           }
         }
       } else {
-        // Si no hay configuración, usar valores por defecto y intentar obtener la tasa
-        console.log('No exchange rate config found, using defaults and trying to fetch rate...');
+        // Si no hay configuración, usar valores por defecto
+        console.log('No exchange rate config found, using defaults');
         setExchangeRate(50);
         setLastUpdated(null);
         updateExchangeRate();
@@ -184,8 +187,12 @@ export const useExchangeRate = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Función para obtener la tasa en bolívares (compatibilidad)
+  const rateInBs = exchangeRate;
+
   return {
     exchangeRate,
+    rateInBs, // Agregado para compatibilidad con Checkout
     loading,
     lastUpdated,
     updateExchangeRate,
