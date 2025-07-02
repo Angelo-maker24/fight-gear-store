@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { Upload, FileImage, X } from 'lucide-react';
+import { usePaymentMethods } from '@/hooks/usePaymentMethods';
 
 interface PaymentReceiptData {
   holderName: string;
@@ -18,7 +19,7 @@ interface PaymentReceiptData {
   bankUsed: string;
   amountPaid: string;
   referenceNumber: string;
-  paymentMethod: string;
+  paymentMethodId: string;
   receiptImage: File | null;
 }
 
@@ -33,7 +34,8 @@ export const PaymentReceiptForm = ({ orderId, totalAmount, onSuccess, onCancel }
   const { user } = useAuth();
   const { uploadFile, uploading } = useFileUpload({ bucket: 'receipts', folder: 'payment-receipts' });
   const [submitting, setSubmitting] = useState(false);
-  
+  const { paymentMethods } = usePaymentMethods();
+
   const [formData, setFormData] = useState<PaymentReceiptData>({
     holderName: '',
     holderPhone: '',
@@ -41,7 +43,7 @@ export const PaymentReceiptForm = ({ orderId, totalAmount, onSuccess, onCancel }
     bankUsed: '',
     amountPaid: totalAmount.toString(),
     referenceNumber: '',
-    paymentMethod: '',
+    paymentMethodId: '',
     receiptImage: null
   });
 
@@ -112,6 +114,10 @@ export const PaymentReceiptForm = ({ orderId, totalAmount, onSuccess, onCancel }
       toast.error('Debe subir una imagen del comprobante de pago');
       return false;
     }
+    if (!formData.paymentMethodId) {
+      toast.error('Debe seleccionar un método de pago');
+      return false;
+}
     return true;
   };
 
@@ -148,7 +154,7 @@ export const PaymentReceiptForm = ({ orderId, totalAmount, onSuccess, onCancel }
         bank_used: formData.bankUsed.trim(),
         amount_paid: Number(formData.amountPaid),
         reference_number: formData.referenceNumber.trim(),
-        payment_method: formData.paymentMethod.trim(),
+        payment_method_id: formData.paymentMethodId || null,
         receipt_image_url: receiptImageUrl,
         status: 'pending'
       };
@@ -308,13 +314,21 @@ export const PaymentReceiptForm = ({ orderId, totalAmount, onSuccess, onCancel }
           {/* Método de pago */}
           <div>
             <Label htmlFor="payment-method">Método de Pago Utilizado</Label>
-            <Input
-              id="payment-method"
-              value={formData.paymentMethod}
-              onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
-              placeholder="Ej: Transferencia, Pago móvil, Zelle"
-            />
-          </div>
+              <select
+                id="payment-method"
+                value={formData.paymentMethodId}
+                onChange={(e) => handleInputChange('paymentMethodId', e.target.value)}
+                className="border border-gray-300 rounded px-3 py-2 w-full"
+                required
+              >
+                <option value="">Seleccione un método de pago</option>
+                {paymentMethods?.map((method) => (
+                  <option key={method.id} value={method.id}>
+                    {method.name}
+                  </option>
+                ))}
+              </select>
+
 
           {/* Botones de acción */}
           <div className="flex space-x-4 pt-4">
