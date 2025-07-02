@@ -53,55 +53,44 @@ export const Navbar = ({ onCartOpen, onAuthOpen, onCategorySelect, selectedCateg
           <div className="flex space-x-4">
             
             
-            {user ? (
-  <div className="flex items-center space-x-4">
-    <span className="text-gold-400">
-      Hola, {user.email}
-      {isAdmin && ' (Admin)'}
-    </span>
-    {isAdmin && (
-      <>
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={() => navigate('/admin')}
-          className="text-white hover:text-gold-400 transition-colors"
-        >
-          <Settings className="w-4 h-4 mr-1" />
-          Panel Admin
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate('/')}
-          className="text-white hover:text-gold-400 transition-colors"
-        >
-          🏠 Volver al Home
-        </Button>
-      </>
-    )}
-    <Button 
-      variant="ghost" 
-      size="sm" 
-      onClick={signOut}
-      className="text-white hover:text-gold-400 transition-colors"
-    >
-      <LogOut className="w-4 h-4 mr-1" />
-      Salir
-    </Button>
-  </div>
-) : (
-  <Button 
-    variant="ghost" 
-    size="sm" 
-    onClick={onAuthOpen}
-    className="text-white hover:text-gold-400 transition-colors"
-  >
-    <User className="w-4 h-4 mr-1" />
-    Iniciar Sesión
-  </Button>
-)}
+           {user ? (
+              <div className="flex items-center space-x-4">
+                <span className="text-gold-400">
+                  Hola, {user.email}
+                  {isAdmin && ' (Admin)'}
+                </span>
+                {isAdmin && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => navigate('/admin')}
+                    className="text-white hover:text-gold-400 transition-colors"
+                  >
+                    <Settings className="w-4 h-4 mr-1" />
+                    Panel Admin
+                  </Button>
+                )}
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={signOut}
+                  className="text-white hover:text-gold-400 transition-colors"
+                >
+                  <LogOut className="w-4 h-4 mr-1" />
+                  Salir
+                </Button>
+              </div>
+            ) : (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={onAuthOpen}
+                className="text-white hover:text-gold-400 transition-colors"
+              >
+                <User className="w-4 h-4 mr-1" />
+                Iniciar Sesión
+              </Button>
+            )}
           </div>
         </div>
       </div>
