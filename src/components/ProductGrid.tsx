@@ -135,14 +135,6 @@ export const ProductGrid = ({ selectedCategory }: ProductGridProps) => {
           </div>
         )}
 
-        {/* Load More - Only show if we have products */}
-        {filteredProducts.length > 0 && (
-          <div className="text-center mt-12">
-            <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-lg transition-colors">
-              Cargar Más Productos
-            </button>
-          </div>
-        )}
       </div>
     </section>
   );
