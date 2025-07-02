@@ -22,7 +22,7 @@ interface CheckoutProps {
 
 export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
   // Hooks para obtener datos del carrito, métodos de pago, tasa de cambio y usuario
-  const { cart, getTotalPrice, clearCart } = useCart();
+  const { items, getTotalPrice, clearCart } = useCart();
   const { paymentMethods } = usePaymentMethods();
   const { exchangeRate, rateInBs } = useExchangeRate();
   const { user } = useAuth();
@@ -71,7 +71,7 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
       return;
     }
 
-    if (cart.length === 0) {
+    if (items.length === 0) {
       toast.error('El carrito está vacío');
       return;
     }
@@ -86,7 +86,7 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
     try {
       console.log('Iniciando proceso de checkout...');
       console.log('Usuario:', user.id);
-      console.log('Carrito:', cart);
+      console.log('Items del carrito:', items);
       console.log('Total USD:', totalUSD);
       console.log('Total BS:', totalBS);
       console.log('Tasa de cambio:', rateInBs);
@@ -128,7 +128,7 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
       console.log('Orden creada exitosamente:', orderResult);
 
       // Preparar items de la orden con validación numérica
-      const orderItems = cart.map(item => ({
+      const orderItems = items.map(item => ({
         order_id: orderResult.id,
         product_id: item.id,
         quantity: validateNumericField(item.quantity),
@@ -164,7 +164,7 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
   };
 
   // Si el carrito está vacío, mostrar mensaje apropiado
-  if (cart.length === 0) {
+  if (items.length === 0) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent aria-describedby="empty-cart-description">
@@ -209,7 +209,7 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {cart.map((item) => (
+                  {items.map((item) => (
                     <div key={item.id} className="flex justify-between items-center">
                       <div className="flex items-center space-x-3">
                         <img 
