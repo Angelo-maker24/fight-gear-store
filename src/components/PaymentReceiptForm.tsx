@@ -328,7 +328,7 @@ export const PaymentReceiptForm = ({ orderId, totalAmount, onSuccess, onCancel }
                   </option>
                 ))}
               </select>
-
+              </div>
 
           {/* Botones de acción */}
           <div className="flex space-x-4 pt-4">
