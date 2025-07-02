@@ -206,6 +206,7 @@ export type Database = {
           order_id: string | null
           receipt_image_url: string | null
           reference_number: string
+          payment_method_id: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           status: string | null
@@ -222,6 +223,7 @@ export type Database = {
           order_id?: string | null
           receipt_image_url?: string | null
           reference_number: string
+          payment_method_id?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string | null
@@ -238,6 +240,7 @@ export type Database = {
           order_id?: string | null
           receipt_image_url?: string | null
           reference_number?: string
+          payment_method_id?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string | null
