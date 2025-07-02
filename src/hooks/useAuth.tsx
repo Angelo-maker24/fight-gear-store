@@ -48,19 +48,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               } else if (!profile) {
                 // Profile doesn't exist, create it
                 console.log('Creating profile for user:', session.user.email);
-                const isAdminUser = session.user.email === 'boxeomaxadmin@gmail.com';
+                
                 
                 const { error: insertError } = await supabase
-                  .from('profiles')
-                  .insert([
-                    { 
-                      id: session.user.id,
-                      first_name: session.user.user_metadata?.first_name || (isAdminUser ? 'Administrador' : ''),
-                      last_name: session.user.user_metadata?.last_name || (isAdminUser ? 'BoxeoMax' : ''),
-                      phone: session.user.user_metadata?.phone,
-                      is_admin: isAdminUser
-                    }
-                  ]);
+                    .from('profiles')
+                    .insert([
+                      { 
+                        id: session.user.id,
+                        first_name: session.user.user_metadata?.first_name || '',
+                        last_name: session.user.user_metadata?.last_name || '',
+                        phone: session.user.user_metadata?.phone,
+                        is_admin: false // ← ya no asignamos admin automáticamente
+                      }
+                    ]);
+
                 
                 if (insertError) {
                   console.error('Error creating profile:', insertError);
@@ -122,28 +123,56 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const signIn = async (email: string, password: string) => {
-    try {
-      console.log('Attempting to sign in with:', email);
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-      
-      if (error) {
-        console.error('SignIn error:', error);
-        toast.error('Credenciales incorrectas. Verifica tu email y contraseña.');
-      } else {
-        toast.success('¡Sesión iniciada exitosamente!');
-      }
-      
-      return { error };
-    } catch (error: any) {
-      console.error('SignIn catch error:', error);
-      toast.error('Error al iniciar sesión');
+const signIn = async (email: string, password: string) => {
+  try {
+    console.log('Attempting to sign in with:', email);
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) {
+      console.error('SignIn error:', error);
+      toast.error('Credenciales incorrectas. Verifica tu email y contraseña.');
       return { error };
     }
-  };
+
+    // ✅ Validación de admin
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (session?.user) {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', session.user.id)
+        .single();
+
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        toast.error('Error consultando permisos de administrador.');
+        return { error: profileError };
+      }
+
+      if (profile?.is_admin) {
+        console.log('Usuario es admin');
+        setIsAdmin(true);
+        toast.success('¡Sesión iniciada como administrador!');
+        // Ejemplo: router.push('/admin');
+      } else {
+        console.log('Usuario NO es admin');
+        setIsAdmin(false);
+        toast.success('¡Sesión iniciada exitosamente!');
+      }
+    }
+
+    return { error: null };
+  } catch (error: any) {
+    console.error('SignIn catch error:', error);
+    toast.error('Error al iniciar sesión');
+    return { error };
+  }
+};
+
 
   const signOut = async () => {
     try {
