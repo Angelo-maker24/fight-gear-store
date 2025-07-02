@@ -76,20 +76,7 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
     }
   };
 
-  // Función para login directo como admin
-  const handleAdminLogin = async () => {
-    setLoading(true);
-    try {
-      const { error } = await signIn('boxeomaxadmin@gmail.com', 'AdminBoxeo2024!');
-      if (!error) {
-        onClose();
-      }
-    } catch (error) {
-      console.error('Admin login error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -146,20 +133,7 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
               </Button>
             </form>
 
-            <div className="text-center">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleAdminLogin}
-                disabled={loading}
-                className="w-full mt-2 bg-red-50 border-red-200 text-red-700 hover:bg-red-100"
-              >
-                🔐 Acceso Administrador
-              </Button>
-              <p className="text-xs text-gray-500 mt-1">
-                Credenciales: boxeomaxadmin@gmail.com / AdminBoxeo2024!
-              </p>
-            </div>
+
           </TabsContent>
 
           <TabsContent value="register" className="space-y-4">
