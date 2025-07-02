@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -32,7 +31,6 @@ export const useFileUpload = ({ bucket, folder }: UseFileUploadProps) => {
     setUploading(true);
     
     try {
-      // Generar nombre único para el archivo
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
       const filePath = folder ? `${folder}/${fileName}` : fileName;
@@ -41,7 +39,10 @@ export const useFileUpload = ({ bucket, folder }: UseFileUploadProps) => {
 
       const { data, error } = await supabase.storage
         .from(bucket)
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true,
+        });
 
       if (error) {
         console.error('Error al subir archivo:', error);
@@ -49,7 +50,6 @@ export const useFileUpload = ({ bucket, folder }: UseFileUploadProps) => {
         return null;
       }
 
-      // Obtener URL pública del archivo
       const { data: urlData } = supabase.storage
         .from(bucket)
         .getPublicUrl(filePath);
