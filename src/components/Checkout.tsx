@@ -11,14 +11,17 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { PaymentReceiptForm } from './PaymentReceiptForm';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { ShoppingCart, CreditCard, MapPin, FileText } from 'lucide-react';
+import { ShoppingCart, CreditCard, MapPin, FileText, Receipt } from 'lucide-react';
 
 interface CheckoutProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
+type CheckoutStep = 'shipping' | 'payment' | 'receipt';
 
 export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
   // Hooks para obtener datos del carrito, métodos de pago, tasa de cambio y usuario
@@ -27,6 +30,8 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
   const { exchangeRate, rateInBs } = useExchangeRate();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [currentStep, setCurrentStep] = useState<CheckoutStep>('shipping');
+  const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
 
   // Estados del formulario de checkout
   const [shippingData, setShippingData] = useState({
@@ -61,11 +66,41 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
   const totalUSD = getTotalPrice();
   const totalBS = totalUSD * rateInBs;
 
-  // Función principal para procesar el checkout
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validaciones básicas antes de procesar
+  // Validar formulario de envío
+  const validateShippingForm = (): boolean => {
+    if (!shippingData.firstName.trim()) {
+      toast.error('El nombre es obligatorio');
+      return false;
+    }
+    if (!shippingData.lastName.trim()) {
+      toast.error('El apellido es obligatorio');
+      return false;
+    }
+    if (!shippingData.phone.trim()) {
+      toast.error('El teléfono es obligatorio');
+      return false;
+    }
+    if (!shippingData.address.trim()) {
+      toast.error('La dirección es obligatoria');
+      return false;
+    }
+    if (!shippingData.city.trim()) {
+      toast.error('La ciudad es obligatoria');
+      return false;
+    }
+    if (!shippingData.state.trim()) {
+      toast.error('El estado es obligatorio');
+      return false;
+    }
+    if (!selectedPaymentMethod) {
+      toast.error('Selecciona un método de pago');
+      return false;
+    }
+    return true;
+  };
+
+  // Función para crear la orden
+  const handleCreateOrder = async () => {
     if (!user) {
       toast.error('Debes iniciar sesión para realizar una compra');
       return;
@@ -76,15 +111,14 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
       return;
     }
 
-    if (!selectedPaymentMethod) {
-      toast.error('Selecciona un método de pago');
+    if (!validateShippingForm()) {
       return;
     }
 
     setLoading(true);
 
     try {
-      console.log('Iniciando proceso de checkout...');
+      console.log('Creando orden...');
       console.log('Usuario:', user.id);
       console.log('Items del carrito:', items);
       console.log('Total USD:', totalUSD);
@@ -108,7 +142,7 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
           zipCode: cleanStringField(shippingData.zipCode)
         },
         notes: cleanStringField(orderNotes),
-        status: 'pending'
+        estado_pedido: 'Pendiente de verificación'
       };
 
       console.log('Datos de la orden a insertar:', orderData);
@@ -150,17 +184,32 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
 
       console.log('Items de orden creados exitosamente');
 
-      // Limpiar carrito y cerrar checkout si todo fue exitoso
-      clearCart();
-      toast.success('¡Orden creada exitosamente! Te contactaremos pronto para confirmar el pago.');
-      onClose();
+      // Guardar ID de la orden creada y proceder al paso del comprobante
+      setCreatedOrderId(orderResult.id);
+      setCurrentStep('receipt');
+      toast.success('Orden creada exitosamente. Ahora sube tu comprobante de pago.');
 
     } catch (error: any) {
-      console.error('Error completo en checkout:', error);
-      toast.error('Error al procesar la orden: ' + (error?.message || 'Error desconocido'));
+      console.error('Error completo al crear orden:', error);
+      toast.error('Error al crear la orden: ' + (error?.message || 'Error desconocido'));
     } finally {
       setLoading(false);
     }
+  };
+
+  // Función para manejar el éxito del comprobante
+  const handleReceiptSuccess = () => {
+    clearCart();
+    toast.success('¡Pedido completado! Te contactaremos pronto para confirmar el pago.');
+    onClose();
+    setCurrentStep('shipping');
+    setCreatedOrderId(null);
+  };
+
+  // Función para cancelar el comprobante
+  const handleReceiptCancel = () => {
+    setCurrentStep('shipping');
+    setCreatedOrderId(null);
   };
 
   // Si el carrito está vacío, mostrar mensaje apropiado
@@ -190,13 +239,17 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" aria-describedby="checkout-description">
         <DialogHeader>
-          <DialogTitle>Finalizar Compra</DialogTitle>
+          <DialogTitle>
+            {currentStep === 'shipping' && 'Finalizar Compra'}
+            {currentStep === 'receipt' && 'Comprobante de Pago'}
+          </DialogTitle>
           <p id="checkout-description" className="text-sm text-gray-600">
-            Completa los datos para procesar tu pedido
+            {currentStep === 'shipping' && 'Completa los datos para procesar tu pedido'}
+            {currentStep === 'receipt' && 'Sube tu comprobante de pago para completar el pedido'}
           </p>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        {currentStep === 'shipping' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Columna izquierda: Información de envío */}
             <div className="space-y-6">
@@ -241,7 +294,7 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
                 </CardContent>
               </Card>
 
-              {/* Información de envío con validación */}
+              {/* Información de envío */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
@@ -388,13 +441,22 @@ export const Checkout = ({ isOpen, onClose }: CheckoutProps) => {
                 <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={loading} className="flex-1">
-                  {loading ? 'Procesando...' : 'Confirmar Pedido'}
+                <Button onClick={handleCreateOrder} disabled={loading} className="flex-1">
+                  {loading ? 'Creando Orden...' : 'Continuar al Pago'}
                 </Button>
               </div>
             </div>
           </div>
-        </form>
+        )}
+
+        {currentStep === 'receipt' && createdOrderId && (
+          <PaymentReceiptForm
+            orderId={createdOrderId}
+            totalAmount={totalUSD}
+            onSuccess={handleReceiptSuccess}
+            onCancel={handleReceiptCancel}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
