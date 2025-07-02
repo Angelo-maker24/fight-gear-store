@@ -30,7 +30,7 @@ export const AdminPanel = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-6">
+        <div className="container mx-auto px-4 py-6 flex justify-between items-center">
           <div className="flex items-center space-x-3">
             <Shield className="w-8 h-8 text-red-600" />
             <div>
@@ -38,8 +38,16 @@ export const AdminPanel = () => {
               <p className="text-gray-600">BoxeoMax - Gestión completa</p>
             </div>
           </div>
+
+          <button
+            onClick={() => window.location.href = '/'}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow transition"
+          >
+            🏠 Volver al Home
+          </button>
         </div>
       </header>
+
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="products" className="w-full">
