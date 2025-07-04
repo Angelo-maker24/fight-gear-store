@@ -68,7 +68,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                   setIsAdmin(false);
                 } else {
                   console.log('Profile created successfully');
-                  setIsAdmin(isAdminUser);
+                  setIsAdmin(false);
                 }
               } else {
                 setIsAdmin(profile?.is_admin || false);

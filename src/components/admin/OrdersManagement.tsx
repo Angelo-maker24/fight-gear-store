@@ -64,7 +64,7 @@ interface PaymentReceipt {
   bank_used: string;
   amount_paid: number;
   reference_number: string;
-  payment_method: string;
+  payment_method?: PaymentMethod;
   receipt_image_url: string;
   status: string;
   created_at: string;
@@ -614,7 +614,7 @@ export const OrdersManagement = () => {
                           {receipt.payment_method && (
                             <div className="col-span-2">
                               <Label>Método de Pago</Label>
-                              <p>{receipt.payment_method}</p>
+                              <p>{receipt.payment_method.name || 'No especificado'}</p>
                             </div>
                           )}
                         </div>

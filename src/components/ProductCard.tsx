@@ -19,19 +19,19 @@ export const ProductCard = ({ product }: ProductCardProps) => {
     : 0;
 
   const categoryIcons: Record<string, string> = {
-    'guantes': '🥊',
-    'protection': '🛡️',
-    'clothing': '👕',
-    'equipment': '🏋️',
-    'accessories': '⚡'
+    'pinturas': '🖼️',
+    'esculturas': '🗿',
+    'fotografia': '📸',
+    'grabados': '🖨️',
+    'ceramicas': '🏺'
   };
 
   const categoryNames: Record<string, string> = {
-    'guantes': 'Guantes',
-    'protection': 'Protecciones',
-    'clothing': 'Ropa',
-    'equipment': 'Equipos',
-    'accessories': 'Accesorios'
+    'pinturas': 'Pinturas',
+    'esculturas': 'Esculturas',
+    'fotografia': 'Fotografía',
+    'grabados': 'Grabados',
+    'ceramicas': 'Cerámicas'
   };
 
   const handleAddToCart = () => {
@@ -60,8 +60,8 @@ export const ProductCard = ({ product }: ProductCardProps) => {
             </Badge>
           )}
           {product.rating >= 4.5 && (
-            <Badge className="bg-gold-500 text-black">
-              ⭐ TOP
+            <Badge className="bg-luxury text-luxury-foreground">
+              ⭐ DESTACADO
             </Badge>
           )}
         </div>
@@ -71,7 +71,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
           isHovered ? 'opacity-100' : 'opacity-0'
         }`}>
           <Button 
-            className="bg-gold-500 hover:bg-gold-600 text-black font-bold"
+            className="bg-luxury hover:bg-luxury/90 text-luxury-foreground font-bold font-['Inter']"
             onClick={handleAddToCart}
           >
             <ShoppingCart className="w-4 h-4 mr-2" />
@@ -89,12 +89,12 @@ export const ProductCard = ({ product }: ProductCardProps) => {
         </div>
 
         {/* Title */}
-        <h3 className="font-bold text-lg text-gray-900 mb-2 line-clamp-2">
+        <h3 className="font-bold text-lg text-gray-900 mb-2 line-clamp-2 font-['Playfair_Display']">
           {product.name}
         </h3>
 
         {/* Description */}
-        <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+        <p className="text-gray-600 text-sm mb-3 line-clamp-2 font-['Inter']">
           {product.description}
         </p>
 
@@ -104,7 +104,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
             {'★'.repeat(Math.floor(product.rating))}
             {'☆'.repeat(5 - Math.floor(product.rating))}
           </div>
-          <span className="text-sm text-gray-500 ml-2">
+          <span className="text-sm text-gray-500 ml-2 font-['Inter']">
             {product.rating} ({product.reviews_count} reseñas)
           </span>
         </div>
@@ -112,7 +112,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
         {/* Price */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <span className="text-2xl font-bold text-red-600">
+            <span className="text-2xl font-bold text-elegant font-['Playfair_Display']">
               ${product.price}
             </span>
             {product.original_price && (
@@ -122,10 +122,10 @@ export const ProductCard = ({ product }: ProductCardProps) => {
             )}
           </div>
           
-          <Button 
+            <Button 
             size="sm" 
             variant="outline"
-            className="border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
+            className="border-elegant text-elegant hover:bg-elegant hover:text-elegant-foreground"
             onClick={handleAddToCart}
           >
             <ShoppingCart className="w-4 h-4" />
