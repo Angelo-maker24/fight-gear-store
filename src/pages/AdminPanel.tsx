@@ -35,13 +35,13 @@ export const AdminPanel = () => {
             <Shield className="w-8 h-8 text-red-600" />
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Panel de Administrador</h1>
-              <p className="text-gray-600">BoxeoMax - Gestión completa</p>
+              <p className="text-gray-600">Galería Artística</p>
             </div>
           </div>
 
           <button
             onClick={() => window.location.href = '/'}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow transition"
+            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg shadow transition"
           >
             🏠 Volver al Home
           </button>
