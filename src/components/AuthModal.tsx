@@ -82,7 +82,7 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-center text-2xl font-bold text-red-600">
+          <DialogTitle className="text-center text-2xl font-bold text-violet-600">
             Galería Artística
           </DialogTitle>
         </DialogHeader>
