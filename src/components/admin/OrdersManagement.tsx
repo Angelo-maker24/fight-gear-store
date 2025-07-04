@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -63,15 +64,10 @@ interface PaymentReceipt {
   bank_used: string;
   amount_paid: number;
   reference_number: string;
+  payment_method: string;
   receipt_image_url: string;
   status: string;
   created_at: string;
-  admin_notes?: string;
-  payment_method_id: string;
-  order_id: string;
-  reviewed_at?: string;
-  reviewed_by?: string;
-  user_id: string;
 }
 
 interface PaymentMethod {
@@ -615,6 +611,12 @@ export const OrdersManagement = () => {
                             <Label>Referencia</Label>
                             <p className="font-mono">{receipt.reference_number}</p>
                           </div>
+                          {receipt.payment_method && (
+                            <div className="col-span-2">
+                              <Label>Método de Pago</Label>
+                              <p>{receipt.payment_method}</p>
+                            </div>
+                          )}
                         </div>
                         
                         {receipt.receipt_image_url && (

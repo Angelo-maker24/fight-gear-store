@@ -49,6 +49,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 // Profile doesn't exist, create it
                 console.log('Creating profile for user:', session.user.email);
                 
+                
                 const { error: insertError } = await supabase
                     .from('profiles')
                     .insert([
@@ -57,16 +58,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                         first_name: session.user.user_metadata?.first_name || '',
                         last_name: session.user.user_metadata?.last_name || '',
                         phone: session.user.user_metadata?.phone,
-                        is_admin: false
+                        is_admin: false // ← ya no asignamos admin automáticamente
                       }
                     ]);
 
+                
                 if (insertError) {
                   console.error('Error creating profile:', insertError);
                   setIsAdmin(false);
                 } else {
                   console.log('Profile created successfully');
-                  setIsAdmin(false);
+                  setIsAdmin(isAdminUser);
                 }
               } else {
                 setIsAdmin(profile?.is_admin || false);
@@ -170,6 +172,7 @@ const signIn = async (email: string, password: string) => {
     return { error };
   }
 };
+
 
   const signOut = async () => {
     try {
